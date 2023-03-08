@@ -32,7 +32,7 @@ def parse_args():
     parser.add_argument("--flush-secs", type=int, default=60,
                         help="number of seconds after which we should flush the training longs (default 60)")
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 if __name__ == '__main__':

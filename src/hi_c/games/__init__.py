@@ -11,7 +11,7 @@ def get_game_class(name):
     if name not in GAMES:
         raise ValueError(f"Game '{name}' is not defined")
     
-    return GAMES[name]()
+    return GAMES[name]
 
 
 __all__ = []

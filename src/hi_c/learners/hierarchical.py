@@ -27,10 +27,7 @@ class HierarchicalGradient:
         return self._strategy
 
     def step(self, other_strategy):
-        other_strategy = torch.tensor(other_strategy,
-                                      requires_grad=True, 
-                                      dtype=torch.float,
-                                      device=self._device)
+        other_strategy = other_strategy.detach()
 
         payoff_a, payoff_b = self._game.payoffs(self._strategy, other_strategy)
         grad_a, grad_b = torch.autograd.grad([payoff_a], [self._strategy, other_strategy], retain_graph=True)
@@ -48,7 +45,7 @@ class HierarchicalGradient:
         grad_r, = torch.autograd.grad([grad], [self._strategy], grad_outputs=vec)
 
         with torch.no_grad():
-            self._strategy.add_(grad_a - grad_r, alpha=self._lr)
+            self._strategy.add_(grad_a - grad_r, alpha=self._lr.step())
             self._strategy.clamp_(self._game.strategy_spaces[0].min, 
                                   self._game.strategy_spaces[1].max)
 

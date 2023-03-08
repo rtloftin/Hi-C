@@ -3,7 +3,7 @@ from hi_c.util import Box
 class TandemGame:
     """The tandem bicycle game from the SOS paper (need to find the reference for this)"""
 
-    def __init__(self, config={}):
+    def __init__(self, config, device):
         range = config.get("range", 100)
         self.strategy_spaces = [
             Box(-range, range, (1,)),
@@ -20,7 +20,7 @@ class TandemGame:
 class HamiltonianGame:
     """The Hamiltonian game (referenced in the SOS paper, but orgininally from a Balduzzi paper)"""
 
-    def __init__(self, config={}):
+    def __init__(self, config, device):
         range = config.get("range", 100)
         self.strategy_spaces = [
             Box(-range, range, (1,)),

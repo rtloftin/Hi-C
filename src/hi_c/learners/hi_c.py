@@ -1,4 +1,3 @@
-import numpy as np  # NOTE: We won't need this once the RNG is setup properly
 import torch
 
 from hi_c.util import get_schedule
@@ -23,16 +22,14 @@ class HiC:
         self._counter = 0
 
     def _sample(self):
-        # NOTE: Fix random number generation
         perturbation = self._rng.integers(0, 1, size=self._game.strategy_spaces[0].shape)
         perturbation = 2 * perturbation - 1
-
-        self._sampled_strategy = self._strategy.numpy(force=True)
-        self._sampled_strategy += self._p * perturbation
-
         self._perturbation = torch.tensor(perturbation,
                                           dtype=torch.float32,
                                           device=self._device)
+
+        self._sampled_strategy = self._strategy + self._p.step() * perturbation
+        
 
     def reset(self):
         if self._initial is not None:
@@ -52,13 +49,9 @@ class HiC:
 
     def step(self, other_strategy):
         self._counter += 1
-        if self._counter >= self._k:
+        if self._counter >= self._k.step():
             self._counter = 0
-            
-            other_strategy = torch.tensor(other_strategy,
-                                      requires_grad=True, 
-                                      dtype=torch.float,
-                                      device=self._device)
+            other_strategy = other_strategy.detach()
             
             payoff, _ = self._game.payoffs(self._strategy, other_strategy)
             grad = (payoff / self._p) / self._perturbation

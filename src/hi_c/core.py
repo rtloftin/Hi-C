@@ -115,8 +115,6 @@ def setup_seed(base_path, name, config, seed):
     config = deepcopy(config)
 
     # Set a single seed in the configuration
-    del config["num_seeds"]
-    del config["seeds"]
     config["seed"] = seed
 
     # Create directory for this seed
@@ -141,8 +139,8 @@ def setup_experiment(base_path, name, config):
         yaml.dump({name: config}, config_file)
     
     # Get random seeds
-    num_seeds = config.get("num_seeds", 1)
-    seeds = config.get("seeds", list(range(num_seeds)))
+    num_seeds = config.pop("num_seeds", 1)
+    seeds = config.pop("seeds", list(range(num_seeds)))
 
     # Set up individual seeds
     return [setup_seed(path, name, config, seed) for seed in seeds]

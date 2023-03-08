@@ -40,7 +40,7 @@ class PairedTrainer(Trainable):
         # Construct differentiable game
         assert "game" in config, "Must specify game through the 'game' field"
         game_cls = get_game_class(config["game"])
-        self._game = game_cls(config.get("game_config", {}))
+        self._game = game_cls(config.get("game_config", {}), device)
 
         # Construct learner A
         assert "learner_a" in config, "Must specify class for learner A through 'learner_a' field"
@@ -80,8 +80,8 @@ class PairedTrainer(Trainable):
         self._timer.stop()
 
         # Save final joint strategy for each iteration
-        self._strategies_a.append(self._strategies_a.numpy(force=True))
-        self._strategies_b.append(self._strategies_a.numpy(force=True))
+        self._strategies_a.append(self._strategy_a.numpy(force=True))
+        self._strategies_b.append(self._strategy_b.numpy(force=True))
 
         # Return iteration statistics
         self._total_steps += self._iteration_updates

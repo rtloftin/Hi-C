@@ -20,23 +20,20 @@ class NaiveLearner:
         else:
             self._strategy = self._game.strategy_spaces[0].sample(self._rng)
         
-        self._strategy = torch.as_tensor(self._strategy, 
-                                         requires_grad=True, 
-                                         dtype=torch.float,
-                                         device=self._device)
+        self._strategy = torch.tensor(self._strategy, 
+                                      requires_grad=True, 
+                                      dtype=torch.float,
+                                      device=self._device)
         return self._strategy
 
     def step(self, other_strategy):
-        other_strategy = torch.as_tensor(other_strategy, 
-                                         requires_grad=True, 
-                                         dtype=torch.float32, 
-                                         device=self._device)
+        other_strategy = other_strategy.detach()
 
         payoff, _ = self._game.payoffs(self._strategy, other_strategy)
         gradient, = torch.autograd.grad([payoff], [self._strategy])
 
         with torch.no_grad():
-            self._strategy.add_(gradient, alpha=self._lr)
+            self._strategy.add_(gradient, alpha=self._lr.step())
             self._strategy.clamp_(self._game.strategy_spaces[0].min, 
                                   self._game.strategy_spaces[1].max)
 

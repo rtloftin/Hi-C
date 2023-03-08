@@ -94,14 +94,11 @@ def get_schedule(value):
     if isinstance(value, dict):
         name, params = list(value.items())[0]
 
-        if "fixed" == name:
-            if isinstance(params, Real):
-                return FixedSchedule(params)
-            else:
-                return FixedSchedule(**params)
-        elif "p_series" == name:
+        if "p_series" == name:
             return PSeriesSchedule(**params)
         elif "logarithmic" == name:
             return LogSchedule(**params)
         else:
             raise ValueError(f"No schedule '{name}' is defined")
+    elif isinstance(value, Real):
+        return FixedSchedule(value)
