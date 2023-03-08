@@ -26,26 +26,9 @@ def git_commit():
         return "unknown"
 
 
-class Trainable(metaclass=ABCMeta):
-    """Abstract base class for iterative computational experiments."""
-
-    @abstractmethod
-    def train(self):
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def save_checkpoint(self, dir):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def save_artifacts(self, dir):
-        raise NotImplementedError()
-
-
 # TODO: Add support for loading from checkpoints
 def run_experiment(path,
                    device='cpu',
-                   verbose=False, 
                    flush_secs=200):
 
     # Check that the directory exists

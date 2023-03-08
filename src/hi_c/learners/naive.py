@@ -1,13 +1,17 @@
 import torch
 
+from hi_c.util import get_schedule
+
 class NaiveLearner:
     """Gradient ascent learner"""
 
-    def __init__(self, game, rng, lr=0.001, initial=None):
+    def __init__(self, game, config, rng, device):
         self._game = game
         self._rng = rng
-        self._lr = lr
-        self._initial = initial
+        self._device = device
+
+        self._lr = get_schedule(config.get("lr", 0.005))
+        self._initial = config.get("initial", None)
         self._strategy = None
 
     def reset(self):
@@ -16,11 +20,17 @@ class NaiveLearner:
         else:
             self._strategy = self._game.strategy_spaces[0].sample(self._rng)
         
-        self._strategy = torch.tensor(self._strategy, requires_grad=True, dtype=torch.float)
-        return self._strategy.numpy(force=True)
+        self._strategy = torch.as_tensor(self._strategy, 
+                                         requires_grad=True, 
+                                         dtype=torch.float,
+                                         device=self._device)
+        return self._strategy
 
     def step(self, other_strategy):
-        other_strategy = torch.tensor(other_strategy, requires_grad=True, dtype=torch.float32)
+        other_strategy = torch.as_tensor(other_strategy, 
+                                         requires_grad=True, 
+                                         dtype=torch.float32, 
+                                         device=self._device)
 
         payoff, _ = self._game.payoffs(self._strategy, other_strategy)
         gradient, = torch.autograd.grad([payoff], [self._strategy])
@@ -30,4 +40,4 @@ class NaiveLearner:
             self._strategy.clamp_(self._game.strategy_spaces[0].min, 
                                   self._game.strategy_spaces[1].max)
 
-        return self._strategy.numpy(force=True), {}
+        return self._strategy

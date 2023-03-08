@@ -1,6 +1,36 @@
 """Utility classes for defining differentiable games"""
 import math
 from numbers import Real
+import time
+
+class Stopwatch:
+
+    def __init__(self):
+        self._started = None
+        self._latest = 0
+        self._elapsed = 0
+    
+    def start(self):
+        if self._started is None:
+            self._started = time.time()
+
+    def stop(self):
+        stopped = time.time()
+        if self._started is not None:
+            self._latest = stopped - self._started
+            self._elapsed += self._latest
+            self._started = None
+        else:
+            raise Exception("Tried to stop a stopwatch that had not been started")
+
+    @property
+    def latest(self):
+        return self._latest
+
+    @property
+    def elapsed(self):
+        return self._elapsed
+
 
 class Box:
 
