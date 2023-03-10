@@ -1,6 +1,7 @@
 """Utility classes for defining differentiable games"""
 import math
 from numbers import Real
+import numpy as np
 import time
 
 class Stopwatch:
@@ -34,13 +35,10 @@ class Stopwatch:
 
 class Box:
 
-    def __init__(self, min, max, shape):
+    def __init__(self, shape, min=-np.inf, max=np.inf):
         self.min = min
         self.max = max
         self.shape = shape
-
-    def sample(self, rng):
-        return (self.max - self.min) * rng.random(self.shape) + self.min
 
 
 class ReversedGame:
@@ -102,3 +100,5 @@ def get_schedule(value):
             raise ValueError(f"No schedule '{name}' is defined")
     elif isinstance(value, Real):
         return FixedSchedule(value)
+    else:
+        raise ValueError("Parameter schedule must either be a real value or a dictionary")

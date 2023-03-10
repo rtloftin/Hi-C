@@ -15,7 +15,7 @@ from hi_c.trainers import get_trainer_class
 
 
 def timestamp():
-    return datetime.now(timezone.utc).isoformat(timespec="minutes")
+    return datetime.now(timezone.utc).strftime("%Y_%m_%d_T%H_%M")
 
 
 def git_commit():

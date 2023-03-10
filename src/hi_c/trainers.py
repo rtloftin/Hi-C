@@ -40,23 +40,26 @@ class PairedTrainer(Trainable):
         # Construct differentiable game
         assert "game" in config, "Must specify game through the 'game' field"
         game_cls = get_game_class(config["game"])
-        self._game = game_cls(config.get("game_config", {}), device)
+        game_config = config.get("game_config", {})
+        self._game = game_cls(**game_config, device=device)
 
         # Construct learner A
-        assert "learner_a" in config, "Must specify class for learner A through 'learner_a' field"
-        learner_a_cls = get_learner_class(config["learner_a"])
-        self._learner_a = learner_a_cls(self._game,
-                                        config.get("learner_a_config", {}), 
+        config_a = config.get("player_a", {})
+        learner_a_cls = get_learner_class(config_a.get("learner", "naive"))
+        learner_a_config = config_a.get("learner_config", {})
+        self._learner_a = learner_a_cls(self._game, 
                                         rng=rng, 
-                                        device=device)
+                                        device=device,
+                                        **learner_a_config)
 
         # Construct learner B
-        assert "learner_b" in config, "Must specify class for learner B through 'learner_b' field"
-        learner_b_cls = get_learner_class(config["learner_b"])
-        self._learner_b = learner_b_cls(ReversedGame(self._game),
-                                        config.get("learner_b_config", {}), 
+        config_b = config.get("player_b", {})
+        learner_b_cls = get_learner_class(config_a.get("learner", "naive"))
+        learner_b_config = config_b.get("learner_config", {})
+        self._learner_b = learner_b_cls(self._game, 
                                         rng=rng, 
-                                        device=device)
+                                        device=device,
+                                        **learner_b_config)
 
         # Initialize learners
         self._strategy_a = self._learner_a.reset()

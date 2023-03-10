@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""Main script for launching experiments from config files."""
 import argparse
 import torch
 from torch.multiprocessing import Pool

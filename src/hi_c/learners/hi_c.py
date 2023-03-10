@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from hi_c.util import get_schedule
@@ -5,19 +6,30 @@ from hi_c.util import get_schedule
 class HiC:
     """Uncoupled hierarchical gradients with simultaneous perturbations + commitments (ours)"""
 
-    def __init__(self, game, config, rng, device):
+    def __init__(self, 
+                 game, 
+                 lr=0.005, 
+                 p=0.001, 
+                 k=10, 
+                 std=0.5, 
+                 rng=None, 
+                 device="cpu"):
         self._game = game
-        self._rng = rng
+        self._std = std
         self._device = device
 
-        self._lr = get_schedule(config.get("lr", 0.005))
-        self._p = get_schedule(config.get("delta", 0.001))
-        self._k = get_schedule(config.get("kappa", 10))
-        self._initial = config.get("initial", None)
+        # Construct random number generator if none provided
+        self._rng = rng if rng is not None else np.random.default_rng()
+
+        # Configure learning-rate, perturbation, and commitment schedules
+        self._lr = get_schedule(lr)
+        self._p = get_schedule(p)
+        self._k = get_schedule(k)
 
         self._strategy = None
-        self._perturbation = None
         self._sampled_strategy = None
+        self._perturbation = None
+        self._last_p = None
 
         self._counter = 0
 
@@ -28,16 +40,17 @@ class HiC:
                                           dtype=torch.float32,
                                           device=self._device)
 
-        self._sampled_strategy = self._strategy + self._p.step() * perturbation
-        
-
+        self._last_p = self._p.step()
+        self._sampled_strategy = self._strategy + self._last_p * perturbation
+    
     def reset(self):
-        if self._initial is not None:
-            self._strategy = self._initial
+        shape = self._game.strategy_spaces[0].shape
+        if self._std > 0:
+            initial = self._rng.normal(scale=self._std, size=shape)
         else:
-            self._strategy = self._game.strategy_spaces[0].sample(self._rng)
+            initial = np.zeros(shape)
         
-        self._strategy = torch.tensor(self._strategy,
+        self._strategy = torch.tensor(initial, 
                                       requires_grad=True, 
                                       dtype=torch.float,
                                       device=self._device)
@@ -50,16 +63,16 @@ class HiC:
     def step(self, other_strategy):
         self._counter += 1
         if self._counter >= self._k.step():
-            self._counter = 0
             other_strategy = other_strategy.detach()
+            self._counter = 0
             
             payoff, _ = self._game.payoffs(self._strategy, other_strategy)
-            grad = (payoff / self._p) / self._perturbation
+            grad = (payoff / self._last_p) / self._perturbation
 
             with torch.no_grad():
-                self._strategy.add_(grad, alpha=self._lr)
+                self._strategy.add_(grad, alpha=self._lr.step())
                 self._strategy.clamp_(self._game.strategy_spaces[0].min, 
-                                    self._game.strategy_spaces[1].max)
+                                      self._game.strategy_spaces[1].max)
 
             self._sample()
 

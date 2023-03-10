@@ -54,6 +54,8 @@ GAMES = {
     "coordination": COORDINATION,
 }
 
+# TODO: Switch to sigmoid strategy spaces
+
 # Pre-Defined Strategies
 TIT_FOR_TAT = [
     [1., 1., 0., 1., 0.],
@@ -63,15 +65,13 @@ TIT_FOR_TAT = [
 class IteratedGame:
     """Differentiable model of an infinitely repeated, discounted bimatrix game"""
 
-    def __init__(self, config, device):
-        self._discount = config.get("discount", 0.9)
+    def __init__(self, name=None, payoffs=None, discount=0.9, device="cpu"):
+        self._discount = discount
         
-        if "name" in config:
-            assert config["name"] in GAMES, f"Matrix game '{config['name']}' is not defined"
-            payoffs = GAMES[config["name"]]
-        elif "payoffs" in config:
-            payoffs = config["payoffs"]
-        else:
+        if name is not None:
+            assert name in GAMES, f"Matrix game '{name}' is not defined"
+            payoffs = GAMES[name]
+        elif payoffs is None:
             raise ValueError("Must either specify a game by name, or provide payoff matrices")
         
         self._rewards = []
@@ -80,32 +80,27 @@ class IteratedGame:
             self._rewards.append(torch.tensor(r, dtype=torch.float, device=device))
 
         self._eye = torch.eye(4, device=device)
-
-        epsilon = config.get("epsilon", 0.0001)
-        self.strategy_spaces = [
-            Box(epsilon, 1. - epsilon, (5,)),
-            Box(epsilon, 1. - epsilon, (5,))
-        ]
+        self.strategy_spaces = [Box((5,)), Box((5,))]
 
     def payoffs(self, strategy_a, strategy_b):
         
-        # Split parameter vectors
+        # Compute probabilities from logits
+        strategy_a = torch.sigmoid(strategy_a)
+        strategy_b = torch.sigmoid(strategy_b)
+
+        # Split into initial distribution and transition probabilities
         a_0 = strategy_a[0]
         b_0 = strategy_b[0]
         a = strategy_a[1:]
         b = strategy_b[1:]
 
         # Initial state distribution
-        p_0 = [None] * 4
-        p_0[0] = a_0 * b_0
-        p_0[1] = a_0 * (1 - b_0)
-        p_0[2] = (1 - a_0) * b_0
-        p_0[3] = (1 - a_0) * (1 - b_0)
-        p_0 = torch.stack(p_0)
+        p_0 = [a_0 * b_0, a_0 * (1 - b_0), (1 - a_0) * b_0, (1 - a_0) * (1 - b_0)]
+        p_0 = torch.stack(p_0, dim=-1)
         
         # Transition matrix
         P = [a * b, a * (1 - b), (1 - a) * b, (1 - a) * (1 - b)]
-        P = torch.stack(P, dim=1)
+        P = torch.stack(P, dim=-1)
 
         # Compute state distribution
         inverse = torch.linalg.inv(self._eye - (self._discount * P))
@@ -114,6 +109,6 @@ class IteratedGame:
         # Compute payoffs
         returns = []
         for reward in self._rewards:
-            returns.append(torch.matmul(D, reward))
+            returns.append((1-self._discount) * torch.matmul(D, reward))
 
         return returns

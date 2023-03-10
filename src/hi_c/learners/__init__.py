@@ -1,6 +1,6 @@
 
 def get_naive():
-    from hi_c.learners.naive import NaiveLearner
+    from hi_c.learners.gradient import NaiveLearner
     return NaiveLearner
 
 

@@ -1,0 +1,21 @@
+naive_ipd_tune:
+  num_seeds: 2
+  iterations: 100
+  trainer: default
+  config:
+    iteration_updates: 10
+    game: iterated
+    game_config:
+      name: prisoners_dilemma
+      discount:
+        grid_search: [0.9, 0.96, 0.99]
+    player_a: 
+      learner: naive
+      learner_config:
+        lr: 
+          grid_search: [0.001, 0.005]
+    player_b:
+      learner: naive
+      learner_config:
+        lr: 
+          grid_search: [0.001, 0.005]
