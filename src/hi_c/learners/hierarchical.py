@@ -3,7 +3,7 @@ import torch
 from hi_c.util import get_schedule
 from hi_c.learners.gradient import GradientLearner
 
-class HierarchicalGradient:
+class HierarchicalGradient(GradientLearner):
     """Hierarchical gradient ascent (Fiez et al. 2019)"""
 
     def __init__(self, game, **kwargs):

@@ -41,7 +41,7 @@ class HiC:
                                           device=self._device)
 
         self._last_p = self._p.step()
-        self._sampled_strategy = self._strategy + self._last_p * perturbation
+        self._sampled_strategy = self._strategy + self._last_p * self._perturbation
     
     def reset(self):
         shape = self._game.strategy_spaces[0].shape

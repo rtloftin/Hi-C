@@ -56,7 +56,7 @@ class PairedTrainer(Trainable):
         config_b = config.get("player_b", {})
         learner_b_cls = get_learner_class(config_a.get("learner", "naive"))
         learner_b_config = config_b.get("learner_config", {})
-        self._learner_b = learner_b_cls(self._game, 
+        self._learner_b = learner_b_cls(ReversedGame(self._game), 
                                         rng=rng, 
                                         device=device,
                                         **learner_b_config)

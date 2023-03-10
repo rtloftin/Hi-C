@@ -110,5 +110,5 @@ class IteratedGame:
         returns = []
         for reward in self._rewards:
             returns.append((1-self._discount) * torch.matmul(D, reward))
-
+            
         return returns
