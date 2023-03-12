@@ -47,11 +47,23 @@ COORDINATION = [
     ]
 ]
 
+ZERO = [
+    [
+        [0., 0.], 
+        [0., 0.]
+    ],
+    [
+        [0., 0.], 
+        [0., 0.]
+    ]
+]
+
 GAMES = {
     "prisoners_dilemma": PRISONERS_DILEMMA,
     "matching_pennies": MATCHING_PENNIES,
     "potential": POTENTIAL,
     "coordination": COORDINATION,
+    "zero": ZERO
 }
 
 # TODO: Switch to sigmoid strategy spaces
@@ -65,8 +77,9 @@ TIT_FOR_TAT = [
 class IteratedGame:
     """Differentiable model of an infinitely repeated, discounted bimatrix game"""
 
-    def __init__(self, name=None, payoffs=None, discount=0.9, device="cpu"):
+    def __init__(self, name=None, payoffs=None, discount=0.9, l2=0.0, device="cpu"):
         self._discount = discount
+        self._l2 = l2
         
         if name is not None:
             assert name in GAMES, f"Matrix game '{name}' is not defined"
@@ -83,7 +96,12 @@ class IteratedGame:
         self.strategy_spaces = [Box((5,)), Box((5,))]
 
     def payoffs(self, strategy_a, strategy_b):
-        
+
+        # Compute L2 penalty if needed
+        if self._l2 > 0:
+            penalty_a = self._l2 * torch.sum(strategy_a**2, dim=-1)
+            penalty_b = self._l2 * torch.sum(strategy_b**2, dim=-1)
+
         # Compute probabilities from logits
         strategy_a = torch.sigmoid(strategy_a)
         strategy_b = torch.sigmoid(strategy_b)
@@ -107,8 +125,12 @@ class IteratedGame:
         D = torch.matmul(p_0, inverse)
 
         # Compute payoffs
-        returns = []
-        for reward in self._rewards:
-            returns.append((1-self._discount) * torch.matmul(D, reward))
-            
-        return returns
+        return_a = (1-self._discount) * torch.matmul(D, self._rewards[0])
+        return_b = (1-self._discount) * torch.matmul(D, self._rewards[1])
+
+        # Add penalties if needed
+        if self._l2 > 0:
+            return_a = return_a - penalty_a
+            return_b = return_b - penalty_b
+
+        return return_a, return_b

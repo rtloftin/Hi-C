@@ -34,7 +34,7 @@ class HiC:
         self._counter = 0
 
     def _sample(self):
-        perturbation = self._rng.integers(0, 1, size=self._game.strategy_spaces[0].shape)
+        perturbation = self._rng.integers(0, 2, size=self._game.strategy_spaces[0].shape)
         perturbation = 2 * perturbation - 1
         self._perturbation = torch.tensor(perturbation,
                                           dtype=torch.float32,
@@ -67,7 +67,7 @@ class HiC:
             self._counter = 0
             
             payoff, _ = self._game.payoffs(self._strategy, other_strategy)
-            grad = (payoff / self._last_p) / self._perturbation
+            grad = (payoff / self._last_p) * self._perturbation
 
             with torch.no_grad():
                 self._strategy.add_(grad, alpha=self._lr.step())
