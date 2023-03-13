@@ -97,6 +97,8 @@ class IteratedGame:
 
     def payoffs(self, strategy_a, strategy_b):
 
+        # print(f"Strategy A: {strategy_a}, Strategy B: {strategy_b}")
+
         # Compute L2 penalty if needed
         if self._l2 > 0:
             penalty_a = self._l2 * torch.sum(strategy_a**2, dim=-1)

@@ -54,7 +54,7 @@ class PairedTrainer(Trainable):
 
         # Construct learner B
         config_b = config.get("player_b", {})
-        learner_b_cls = get_learner_class(config_a.get("learner", "naive"))
+        learner_b_cls = get_learner_class(config_b.get("learner", "naive"))
         learner_b_config = config_b.get("learner_config", {})
         self._learner_b = learner_b_cls(ReversedGame(self._game), 
                                         rng=rng, 
@@ -76,8 +76,8 @@ class PairedTrainer(Trainable):
         for _ in range(self._iteration_updates):
             new_strategy_a = self._learner_a.step(self._strategy_b)
             new_strategy_b = self._learner_b.step(self._strategy_a)
-            self._strategy_a = new_strategy_b
-            self._strategy_b = new_strategy_a
+            self._strategy_a = new_strategy_a
+            self._strategy_b = new_strategy_b
         
         payoff_a, payoff_b = self._game.payoffs(self._strategy_a, self._strategy_b)
         self._timer.stop()
