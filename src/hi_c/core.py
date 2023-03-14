@@ -100,7 +100,8 @@ def run_experiment(path,
 
 
 def get_experiment_dir(base_path, name, index_digits=3):
-    path = os.path.join(base_path, name + "_" + timestamp())
+    name = name + "_" + timestamp()
+    path = os.path.join(base_path, name)
 
     idx = 0
     while os.path.exists(path):

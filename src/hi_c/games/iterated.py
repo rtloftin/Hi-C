@@ -77,9 +77,9 @@ TIT_FOR_TAT = [
 class IteratedGame:
     """Differentiable model of an infinitely repeated, discounted bimatrix game"""
 
-    def __init__(self, name=None, payoffs=None, discount=0.9, l2=0.0, device="cpu"):
+    def __init__(self, name=None, payoffs=None, discount=0.9, entropy=0.0, device="cpu"):
         self._discount = discount
-        self._l2 = l2
+        self._entropy = entropy
         
         if name is not None:
             assert name in GAMES, f"Matrix game '{name}' is not defined"
@@ -98,11 +98,6 @@ class IteratedGame:
     def payoffs(self, strategy_a, strategy_b):
 
         # print(f"Strategy A: {strategy_a}, Strategy B: {strategy_b}")
-
-        # Compute L2 penalty if needed
-        if self._l2 > 0:
-            penalty_a = self._l2 * torch.sum(strategy_a**2, dim=-1)
-            penalty_b = self._l2 * torch.sum(strategy_b**2, dim=-1)
 
         # Compute probabilities from logits
         strategy_a = torch.sigmoid(strategy_a)
@@ -127,12 +122,14 @@ class IteratedGame:
         D = torch.matmul(p_0, inverse)
 
         # Compute payoffs
-        return_a = (1-self._discount) * torch.matmul(D, self._rewards[0])
-        return_b = (1-self._discount) * torch.matmul(D, self._rewards[1])
+        return_a = (1.0-self._discount) * torch.matmul(D, self._rewards[0])
+        return_b = (1.0-self._discount) * torch.matmul(D, self._rewards[1])
 
-        # Add penalties if needed
-        if self._l2 > 0:
-            return_a = return_a - penalty_a
-            return_b = return_b - penalty_b
+        # Add entropy bonus if needed
+        if self._entropy > 0.0:
+            entropy_a = strategy_a * torch.log(strategy_a) + (1.0-strategy_a) * torch.log(1.0-strategy_a)
+            entropy_b = strategy_b * torch.log(strategy_b) + (1.0-strategy_b) * torch.log(1.0-strategy_b)
+            return_a = return_a - self._entropy * torch.sum(entropy_a, dim=-1)
+            return_b = return_b - self._entropy * torch.sum(entropy_b, dim=-1)
 
         return return_a, return_b
