@@ -21,7 +21,7 @@ class HiC:
         self._device = device
 
         # Get parameter space
-        self.space = game.strategy_spaces[id]
+        self._space = game.strategy_spaces[id]
 
         # Construct random number generator if none provided
         self._rng = rng if rng is not None else np.random.default_rng()
@@ -39,7 +39,7 @@ class HiC:
         self._counter = 0
 
     def _sample(self):
-        perturbation = self._rng.integers(0, 2, size=self._game.strategy_spaces[0].shape)
+        perturbation = self._rng.integers(0, 2, size=self._space.shape)
         perturbation = 2 * perturbation - 1
         self._perturbation = torch.tensor(perturbation,
                                           requires_grad=False,
@@ -48,16 +48,15 @@ class HiC:
 
         self._last_p = self._p.step()
         self._sampled_strategy = self._strategy + self._last_p * self._perturbation
-        self._sampled_strategy.clamp_(self.space.min, self.space.max)
+        self._sampled_strategy.clamp_(self._space.min, self._space.max)
     
     def reset(self):
-        shape = self._game.strategy_spaces[0].shape
         if self._std > 0:
-            initial = self._rng.normal(scale=self._std, size=shape)
+            initial = self._rng.normal(scale=self._std, size=self._space.shape)
         else:
-            initial = np.zeros(shape)
+            initial = np.zeros(self._space.shape)
         
-        initial = initial.clip(self.space.min, self.space.max)
+        initial = initial.clip(self._space.min, self._space.max)
         self._strategy = torch.tensor(initial, 
                                       requires_grad=False, 
                                       dtype=torch.float,
@@ -73,16 +72,16 @@ class HiC:
         if self._counter >= self._k.step():
             detached = []
             for id, strategy in enumerate(strategies):
-                if id != self.id:
+                if id != self._id:
                     detached.append(strategy.detach())
                 else:
-                    detached.append(self.strategy)
+                    detached.append(self._strategy)
             
-            payoffs = self._game.payoffs(detached)
-            grad = (payoffs[self.id] / self._last_p) * self._perturbation
+            payoffs = self._game.payoffs(*detached)
+            grad = (payoffs[self._id] / self._last_p) * self._perturbation
 
             self._strategy.add_(grad, alpha=self._lr.step())
-            self._strategy.clamp_(self.space.min, self.space.max)
+            self._strategy.clamp_(self._space.min, self._space.max)
 
             self._sample()
             self._counter = 0

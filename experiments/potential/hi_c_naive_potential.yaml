@@ -17,6 +17,6 @@ hi_c_naive_potential:
           p: 0.05
           k: 10
       - name: naive
-      - params:
+        params:
           lr: 1
           std: 2
