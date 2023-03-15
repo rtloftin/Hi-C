@@ -1,0 +1,20 @@
+naive_naive_potential:
+  num_seeds: 24
+  iterations: 200
+  trainer: default
+  config:
+    iteration_updates: 10
+    game: iterated
+    game_config:
+      name: potential
+      discount: 0.96
+      l2: 0.01
+    learners: 
+      - name: naive
+        params:
+          lr: 1
+          std: 2
+      - name: naive
+        params:
+          lr: 1
+          std: 2

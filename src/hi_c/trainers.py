@@ -23,7 +23,7 @@ class Trainable(metaclass=ABCMeta):
         raise NotImplementedError()
     
 
-class PairedTrainer(Trainable):
+class SimultaneousTrainer(Trainable):
 
     def __init__(self, config, seed, device):
 
@@ -43,76 +43,67 @@ class PairedTrainer(Trainable):
         game_config = config.get("game_config", {})
         self._game = game_cls(**game_config, device=device)
 
-        # Construct learner A
-        config_a = config.get("player_a", {})
-        learner_a_cls = get_learner_class(config_a.get("learner", "naive"))
-        learner_a_config = config_a.get("learner_config", {})
-        self._learner_a = learner_a_cls(self._game, 
-                                        rng=rng, 
-                                        device=device,
-                                        **learner_a_config)
+        # Construct learners
+        assert "learners" in config, "Must provide learner configs via the 'learners' field"
+        assert len(config["learners"]) >= len(self._game.strategy_spaces), "Not enough learners defined"
 
-        # Construct learner B
-        config_b = config.get("player_b", {})
-        learner_b_cls = get_learner_class(config_b.get("learner", "naive"))
-        learner_b_config = config_b.get("learner_config", {})
-        self._learner_b = learner_b_cls(ReversedGame(self._game), 
-                                        rng=rng, 
-                                        device=device,
-                                        **learner_b_config)
+        self._learners = []
+        self._strategies = []
+        for id, conf in enumerate(config["learners"]):
+            cls = get_learner_class(conf.get("name", "naive"))
+            params = conf.get("params", {})
+            learner = cls(self._game, id, rng=rng, device=device, **params)
+            self._learners.append(learner)
+            self._strategies.append(learner.reset())
 
-        # Initialize learners
-        self._strategy_a = self._learner_a.reset()
-        self._strategy_b = self._learner_b.reset()
+        # Initialize history
+        self._history = [[strategy.numpy(force=True)] for strategy in self._strategies]
 
         # Set up statistics
         self._timer = Stopwatch()
-        self._strategies_a = []
-        self._strategies_b = []
         self._total_steps = 0
 
     def train(self):
         self._timer.start()
         for _ in range(self._iteration_updates):
-            new_strategy_a = self._learner_a.step(self._strategy_b)
-            new_strategy_b = self._learner_b.step(self._strategy_a)
-            self._strategy_a = new_strategy_a
-            self._strategy_b = new_strategy_b
+            new_strategies = [learner.step(self._strategies) for learner in self._learners]
+            self._strategies = new_strategies
         
-        payoff_a, payoff_b = self._game.payoffs(self._strategy_a, self._strategy_b)
+        payoffs = self._game.payoffs(*self._strategies)
         self._timer.stop()
 
         # Save final joint strategy for each iteration
-        self._strategies_a.append(self._strategy_a.numpy(force=True))
-        self._strategies_b.append(self._strategy_b.numpy(force=True))
+        for id, strategy in enumerate(self._strategies):
+            self._history[id].append(strategy.numpy(force=True))
 
         # Return iteration statistics
         self._total_steps += self._iteration_updates
-        payoff_a = payoff_a.item()
-        payoff_b = payoff_b.item()
-
-        return {
-            "payoff_a": payoff_a,
-            "payoff_b": payoff_b,
-            "total_payoff": payoff_a + payoff_b,
-            "iteration_time": self._timer.latest,
-            "total_time": self._timer.elapsed,
-            "total_steps": self._total_steps
+        stats = {
+            "global/iteration_time": self._timer.latest,
+            "global/total_time": self._timer.elapsed,
+            "global/total_steps": self._total_steps
         }
+
+        total_payoff = 0
+        for id, payoff in enumerate(payoffs):
+            payoff = payoff.item()
+            total_payoff += payoff
+            stats[f"global/payoff_{id}"] = payoff
+        
+        stats["global/total_payoff"] = total_payoff
+        return stats
 
     def save_checkpoint(self, dir):
         raise NotImplementedError()
 
     def save_artifacts(self, dir):
-        strategies_a = np.stack(self._strategies_a)
-        strategies_b = np.stack(self._strategies_b)
-
-        np.save(os.path.join(dir, "strategies_a"), strategies_a, allow_pickle=False)
-        np.save(os.path.join(dir, "strategies_b"), strategies_b, allow_pickle=False)
+        for id, strategies in enumerate(self._history):
+            path = os.path.join(dir, f"strategies_{id}")
+            np.save(path, strategies, allow_pickle=False)
 
 
 def get_trainer_class(name):
     if name != "default":
         raise ValueError(f"Trainer {name} is not defined")
 
-    return PairedTrainer
+    return SimultaneousTrainer

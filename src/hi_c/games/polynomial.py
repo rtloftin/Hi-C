@@ -6,9 +6,9 @@ class TandemGame:
     def __init__(self, device="cpu"):
         self.strategy_spaces = [Box((1,)), Box((1,))]
     
-    def payoffs(self, strategy_a, strategy_b):
-        base = (strategy_a[0] + strategy_b[0]) ** 2
-        return base - 2 * strategy_a[0], base - 2 * strategy_b[0]
+    def payoffs(self, params_a, params_b):
+        base = (params_a[0] + params_b[0]) ** 2
+        return base - 2 * params_a[0], base - 2 * params_b[0]
 
 
 class HamiltonianGame:
@@ -17,6 +17,6 @@ class HamiltonianGame:
     def __init__(self, device="cpu"):
         self.strategy_spaces = [Box((1,)), Box((1,))]
     
-    def payoffs(self, strategy_a, strategy_b):
-        payoff = strategy_a[0] * strategy_b[0]
+    def payoffs(self, params_a, params_b):
+        payoff = params_a[0] * params_b[0]
         return payoff, -payoff

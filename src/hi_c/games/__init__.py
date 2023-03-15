@@ -1,8 +1,9 @@
-from hi_c.games.iterated import IteratedGame
+from hi_c.games.matrix import IteratedGame, MatrixGame
 from hi_c.games.polynomial import TandemGame, HamiltonianGame
 
 GAMES = {
     "iterated": IteratedGame,
+    "matrix": MatrixGame,
     "tandem": TandemGame,
     "hamiltonian": HamiltonianGame,
 }

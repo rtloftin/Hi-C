@@ -1,5 +1,10 @@
 import numpy as np
 
+def strategy_loss(x):
+    x = np.exp(x)
+    x = x / np.sum(x, axis=-1)
+    return -10 * x[-1]
+
 def entropy_loss(x):
     x = 1.0 / (1.0 + np.exp(-x))
     entropy = x * np.log(x) + (1.0 - x) * np.log(1.0 - x)
@@ -21,13 +26,14 @@ def l1_loss(x):
 
 
 if __name__ == '__main__':
-    lr = 0.000001
+    lr = 0.0001
     p = 0.01
     std = 0.5
-    iterations = 100000
-    skip = 1000
+    iterations = 1000000
+    skip = 10000
 
-    loss_fn = entropy_loss
+    loss_fn = strategy_loss
+    # loss_fn = entropy_loss
     # loss_fn = sigmoid_loss
     # loss_fn = tanh_loss
     # loss_fn = l2_loss
@@ -53,4 +59,4 @@ if __name__ == '__main__':
         theta = theta - delta
 
         if (iteration + 1) % skip == 0:
-            print(f"{iteration + 1} - {theta}. p: {perturbation}, delta: {np.abs(delta)}, loss: {loss}")
+            print(f"{iteration + 1} - {theta}, loss: {loss}")

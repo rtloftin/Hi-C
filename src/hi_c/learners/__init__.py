@@ -22,7 +22,7 @@ def get_hi_c():
 LEARNERS = {
     "naive": get_naive,
     "lola": get_lola,
-    "hierarchical": get_hierarchical,
+    # "hierarchical": get_hierarchical,
     "hi_c": get_hi_c,
 }
 

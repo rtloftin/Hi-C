@@ -1,23 +1,24 @@
 hi_c_naive_ipd:
-  num_seeds: 20
-  iterations: 200
+  num_seeds: 8
+  iterations: 400
   trainer: default
   config:
-    iteration_updates: 100
+    iteration_updates: 200
     game: iterated
     game_config:
       name: prisoners_dilemma
       discount: 0.96
-      entropy: 0.1
+      entropy: 0.0
+      l2: 0.01
     player_a: 
       learner: hi_c
       learner_config:
-        lr: 0.001
+        lr: 0.005
         std: 0.5
-        p: 0.1
-        k: 100
+        p: 0.05
+        k: 200
     player_b:
       learner: naive
       learner_config:
-        lr: 1
+        lr: 1.0
         std: 0.5

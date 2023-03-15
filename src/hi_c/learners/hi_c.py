@@ -7,7 +7,8 @@ class HiC:
     """Uncoupled hierarchical gradients with simultaneous perturbations + commitments (ours)"""
 
     def __init__(self, 
-                 game, 
+                 game,
+                 id,
                  lr=0.005, 
                  p=0.001, 
                  k=10, 
@@ -15,8 +16,12 @@ class HiC:
                  rng=None, 
                  device="cpu"):
         self._game = game
+        self._id = id
         self._std = std
         self._device = device
+
+        # Get parameter space
+        self.space = game.strategy_spaces[id]
 
         # Construct random number generator if none provided
         self._rng = rng if rng is not None else np.random.default_rng()
@@ -37,11 +42,13 @@ class HiC:
         perturbation = self._rng.integers(0, 2, size=self._game.strategy_spaces[0].shape)
         perturbation = 2 * perturbation - 1
         self._perturbation = torch.tensor(perturbation,
+                                          requires_grad=False,
                                           dtype=torch.float32,
                                           device=self._device)
 
         self._last_p = self._p.step()
         self._sampled_strategy = self._strategy + self._last_p * self._perturbation
+        self._sampled_strategy.clamp_(self.space.min, self.space.max)
     
     def reset(self):
         shape = self._game.strategy_spaces[0].shape
@@ -50,8 +57,9 @@ class HiC:
         else:
             initial = np.zeros(shape)
         
+        initial = initial.clip(self.space.min, self.space.max)
         self._strategy = torch.tensor(initial, 
-                                      requires_grad=True, 
+                                      requires_grad=False, 
                                       dtype=torch.float,
                                       device=self._device)
 
@@ -60,20 +68,23 @@ class HiC:
 
         return self._sampled_strategy
 
-    def step(self, other_strategy):
+    def step(self, strategies):
         self._counter += 1
         if self._counter >= self._k.step():
-            other_strategy = other_strategy.detach()
-            self._counter = 0
+            detached = []
+            for id, strategy in enumerate(strategies):
+                if id != self.id:
+                    detached.append(strategy.detach())
+                else:
+                    detached.append(self.strategy)
             
-            payoff, _ = self._game.payoffs(self._strategy, other_strategy)
-            grad = (payoff / self._last_p) * self._perturbation
+            payoffs = self._game.payoffs(detached)
+            grad = (payoffs[self.id] / self._last_p) * self._perturbation
 
-            with torch.no_grad():
-                self._strategy.add_(grad, alpha=self._lr.step())
-                self._strategy.clamp_(self._game.strategy_spaces[0].min, 
-                                      self._game.strategy_spaces[1].max)
+            self._strategy.add_(grad, alpha=self._lr.step())
+            self._strategy.clamp_(self.space.min, self.space.max)
 
             self._sample()
+            self._counter = 0
 
         return self._sampled_strategy
