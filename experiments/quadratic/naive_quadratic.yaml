@@ -1,0 +1,14 @@
+naive_quadratic:
+  num_seeds: 24
+  iterations: 200
+  trainer: default
+  config:
+    iteration_updates: 10
+    game: quadratic
+    game_config:
+      dims: 5
+    learners: 
+      - name: naive
+        params:
+          lr: 1
+          std: 2
