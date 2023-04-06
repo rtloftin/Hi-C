@@ -13,6 +13,9 @@ import yaml
 from hi_c.grid_search import grid_search
 from hi_c.trainers import get_trainer_class
 
+# TODO: Get the Hi-C experiments running on the cluster
+# TODO: Move the experiment management code to the Amanuensis package
+
 
 def timestamp():
     return datetime.now(timezone.utc).strftime("%Y_%m_%d_T%H_%M")

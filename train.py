@@ -5,6 +5,7 @@ import torch
 from torch.multiprocessing import Pool
 import traceback
 
+# TODO: Move run and setup scripts to Amanuensis package for reuse
 from hi_c import setup_experiments, run_experiment
 
 def print_error(error):
