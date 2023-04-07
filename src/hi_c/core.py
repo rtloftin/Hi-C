@@ -166,10 +166,8 @@ def setup_experiments(config_files,
             experiments.update(yaml.load(f, Loader=yaml.FullLoader))
     
     # Set up experiments
-    paths = []
+    paths = defaultdict(list)
     for name, config in experiments.items():
-
-        # Make experiment directory
 
         # Override config if custom seeds are provided
         if num_seeds is not None:
@@ -187,11 +185,11 @@ def setup_experiments(config_files,
     
         # Set up experiment directories
         if variations is None:
-            paths += setup_experiment(output_path, name, config)
+            paths[name] += setup_experiment(output_path, name, config)
         else:  # NOTE: Hyperparameter sweep
             base_path = get_experiment_dir(output_path, name)
 
             for var_name, var_config in variations.items():
-                paths += setup_experiment(base_path, var_name, var_config)
+                paths[name] += setup_experiment(base_path, var_name, var_config)
 
     return paths

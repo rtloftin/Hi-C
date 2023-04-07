@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Main script for launching experiments from config files."""
 import argparse
+import itertools
 import torch
 from torch.multiprocessing import Pool
 import traceback
@@ -35,11 +36,12 @@ def parse_args():
     parser.add_argument("--flush-secs", type=int, default=60,
                         help="number of seconds after which we should flush the training longs (default 60)")
 
+
     return parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    args, unknown = parse_args()
+    args, unknown = parse_args()  # NOTE: In the `interactive_agents` repo, this is 
 
     # Select torch device
     device = "cuda" if args.gpu else "cpu"
@@ -49,7 +51,7 @@ if __name__ == '__main__':
                               args.output_path, 
                               num_seeds=args.num_seeds, 
                               seeds=args.seeds, 
-                              arguments=unknown)
+                              arguments=unknown)  # NOTE: In the new framework, experiment directories are initialized for each seed first
 
     # Limit Torch CPU parallelism - This must be set BEFORE we initialize the process pool
     torch.set_num_interop_threads(1)
@@ -58,11 +60,11 @@ if __name__ == '__main__':
     # Launch experiments
     with Pool(args.num_cpus) as pool:
         experiments = []
-        for path in paths:
+        for path in itertools.chain.from_iterable(paths.values):
             experiments.append(pool.apply_async(run_experiment, (path,), {
                     "device": device,
                     "flush_secs": args.flush_secs
-                }, error_callback=print_error))
+                }, error_callback=print_error))  # NOTE: The "run_experiment" method just takes the path to the initialized experiment directory
             
         # Wait for all trails to complete before returning
         for experiment in experiments:
