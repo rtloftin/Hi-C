@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument("--flush-secs", type=int, default=200,
                         help="number of seconds after which we should flush the training longs")
 
-    parser.add_argument("-i", "--image", type=str, default="./singularity_image.sif",
+    parser.add_argument("-i", "--image", type=str, default="hi_c_image.sif",
                         help="singularity image in which to run experiments")
 
     parser.add_argument("-p", "--partition", type=str,
@@ -51,6 +51,7 @@ def parse_args():
 
 def get_script_name(base_name, index_digits=3):
     base_name = base_name + "_" + timestamp()
+    base_name = os.path.join("slurm_scripts", base_name)
     name = base_name + ".sh"
 
     idx = 0

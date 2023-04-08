@@ -128,5 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Local Experimental Results
+# Local outputs
 results
+slurm_output
+slurm_scripts
+*.sif
