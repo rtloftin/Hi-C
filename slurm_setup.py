@@ -3,6 +3,7 @@ experiments, and creates the necessary `sbatch` file."""
 import argparse
 import os.path
 import subprocess
+import sys
 
 from hi_c import setup_experiments, timestamp
 
@@ -42,13 +43,13 @@ def parse_args():
     parser.add_argument("--slurm-output", type=str, default="./slurm_output/",
                         help="directory to store SLURM output")
 
-    parser.add_argument("--setup", action="store_true",
-                        help="setup experiments and create sbatch script, but do not launch jobs")
+    parser.add_argument("--container", action="store_true",
+                        help="if this flag is not provided, launch the script again inside the specified container")
 
     return parser.parse_known_args()
 
 
-def get_filename(base_name, index_digits=3):
+def get_script_name(base_name, index_digits=3):
     base_name = base_name + "_" + timestamp()
     name = base_name + ".sh"
 
@@ -60,8 +61,27 @@ def get_filename(base_name, index_digits=3):
     return name
 
 
+def relaunch(args):
+    run_command = [
+        "singularity", 
+        "exec",
+        "--bind",
+        f"{args.output_path}:/mnt/output",
+        args.image,
+        "python3"    
+    ]
+    run_command.extend(sys.argv)
+    run_command.append("--container")
+    subprocess.run(" ".join(run_command))
+
+
 if __name__ == '__main__':
     args, unknown = parse_args()
+
+    # If we are not in a container, relaunch the script in the container
+    if not args.container:
+        relaunch(args)
+        exit()
 
     # Initialize experiment directories
     exp_paths = setup_experiments(args.config_files, 
@@ -70,8 +90,8 @@ if __name__ == '__main__':
                               seeds=args.seeds, 
                               arguments=unknown)
 
-    # Initialize run command
-    run_command = " ".join([
+    # Initialize command for running an individual trial
+    run_command = [
         "singularity", 
         "exec",
         "--bind",
@@ -81,10 +101,12 @@ if __name__ == '__main__':
         "slurm_run.py",
         "--flush-secs",
         str(args.flush_secs)
-    ])
+    ]
 
     if args.gpus_per_task > 0:
-        run_command += " --gpu"
+        run_command.append("--gpu")
+    
+    run_command = " ".join(run_command)
 
     # Initialize sbatch header
     slurm_header = [
@@ -102,7 +124,7 @@ if __name__ == '__main__':
 
     # Create and launch sbatch files
     for name, paths in exp_paths.items():
-        sbatch_path = get_filename(name)
+        sbatch_path = get_script_name(name)
         root_output = os.path.join(args.slurm_output,  name + r"_%j")
         task_output = os.path.join(args.slurm_output,  name + r"_%J")
 
@@ -112,11 +134,6 @@ if __name__ == '__main__':
             f.write(f"#SBATCH --output={root_output}\n\n")
 
             for path in paths:
-                f.write(f"srun -n1 --output={task_output} {run_command} ")
-                f.write(path)
-                f.write(" &\n")
+                f.write(f"srun -n1 --output={task_output} {run_command} {path} &\n")
             
             f.write("wait")
-        
-        if not args.setup:
-            subprocess.run(f"sbatch {sbatch_path}")
