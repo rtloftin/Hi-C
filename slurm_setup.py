@@ -51,7 +51,6 @@ def parse_args():
 
 def get_script_name(base_name, index_digits=3):
     base_name = base_name + "_" + timestamp()
-    base_name = os.path.join("slurm_scripts", base_name)
     name = base_name + ".sh"
 
     idx = 0
@@ -73,7 +72,7 @@ def relaunch(args):
     ]
     run_command.extend(sys.argv)
     run_command.append("--container")
-    subprocess.run(" ".join(run_command))
+    subprocess.run(run_command)
 
 
 if __name__ == '__main__':
