@@ -3,18 +3,17 @@ naive_naive_imp:
   iterations: 200
   trainer: default
   config:
-    iteration_updates: 5
+    iteration_updates: 100
     game: iterated
     game_config:
       name: matching_pennies
       discount: 0.9
-    player_a: 
-      learner: naive
-      learner_config:
-        lr: 1
-        std: 0.5
-    player_b:
-      learner: naive
-      learner_config:
-        lr: 1
-        std: 0.5
+    learners: 
+      - name: naive
+        params:
+          lr: 0.001
+          std: 0.5
+      - name: naive
+        params:
+          lr: 0.001
+          std: 0.5

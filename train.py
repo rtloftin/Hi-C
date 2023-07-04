@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # Launch experiments
     with Pool(args.num_cpus) as pool:
         experiments = []
-        for path in itertools.chain.from_iterable(paths.values):
+        for path in itertools.chain.from_iterable(paths.values()):
             experiments.append(pool.apply_async(run_experiment, (path,), {
                     "device": device,
                     "flush_secs": args.flush_secs

@@ -25,6 +25,13 @@ class Quadratic:
         
         return payoffs
 
+    def payoffs(self, *params):
+        payoffs = []
+        for p in params:
+            payoffs.append(-torch.matmul(p, torch.matmul(self._matrix, p)))
+        
+        return payoffs
+
 
 class Gaussian:
 

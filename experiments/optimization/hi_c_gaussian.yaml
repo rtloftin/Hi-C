@@ -1,0 +1,17 @@
+hi_c_gaussian:
+  num_seeds: 8
+  iterations: 100
+  trainer: default
+  config:
+    iteration_updates: 100
+    game: gaussian
+    game_config:
+      dims: 5
+    learners:
+      - name: hi_c
+        params:
+          std: 0.5
+          lr: 0.001
+          p: 0.01
+          k: 1
+          use_baseline: True

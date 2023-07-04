@@ -6,18 +6,20 @@ from hi_c.util import get_schedule
 class HiC:
     """Uncoupled hierarchical gradients with simultaneous perturbations + commitments (ours)"""
 
-    def __init__(self, 
+    def __init__(self,
                  game,
                  id,
-                 lr=0.005, 
-                 p=0.001, 
-                 k=10, 
-                 std=0.5, 
+                 lr=0.005,
+                 p=0.001,
+                 k=10,
+                 std=0.5,
+                 use_baseline=True,
                  rng=None, 
                  device="cpu"):
         self._game = game
         self._id = id
         self._std = std
+        self._use_baseline = use_baseline
         self._device = device
 
         # Get parameter space
@@ -35,6 +37,7 @@ class HiC:
         self._sampled_strategy = None
         self._perturbation = None
         self._last_p = None
+        self._baseline = None
 
         self._counter = 0
 
@@ -64,6 +67,7 @@ class HiC:
 
         self._sample()
         self._counter = 0
+        self._baseline = 0
 
         return self._sampled_strategy
 
@@ -71,19 +75,23 @@ class HiC:
         self._counter += 1
         if self._counter >= self._k.step():
             detached = []
-            for id, strategy in enumerate(strategies):
-                if id != self._id:
-                    detached.append(strategy.detach())
-                else:
-                    detached.append(self._strategy)
-            
+            for strategy in strategies:
+                detached.append(strategy.detach())
+
             payoffs = self._game.payoffs(*detached)
-            grad = (payoffs[self._id] / self._last_p) * self._perturbation
+            
+            if self._use_baseline:
+                estimate = payoffs[self._id] - self._baseline
+            else:
+                estimate = payoffs[self._id]
+            
+            grad = (estimate / self._last_p) * self._perturbation
 
             self._strategy.add_(grad, alpha=self._lr.step())
             self._strategy.clamp_(self._space.min, self._space.max)
 
             self._sample()
             self._counter = 0
+            self._baseline = payoffs[self._id]
 
         return self._sampled_strategy

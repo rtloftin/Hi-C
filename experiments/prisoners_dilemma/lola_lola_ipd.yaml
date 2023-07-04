@@ -1,9 +1,9 @@
 lola_lola_ipd:
-  num_seeds: 48
+  num_seeds: 20
   iterations: 200
   trainer: default
   config:
-    iteration_updates: 10
+    iteration_updates: 100
     game: iterated
     game_config:
       name: prisoners_dilemma
@@ -11,11 +11,13 @@ lola_lola_ipd:
     learners:
       - name: lola
         params:
-          std: 1
           lr: 0.001
           other_lr: 1
+          std: 0.5
+          correction: True
       - name: lola
         params:
-          std: 1
           lr: 0.001
-          other_lr: 0.1
+          other_lr: 1
+          std: 0.5
+          correction: True
