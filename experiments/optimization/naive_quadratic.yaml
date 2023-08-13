@@ -1,6 +1,6 @@
 naive_quadratic:
-  num_seeds: 48
-  iterations: 200
+  num_seeds: 8
+  iterations: 800
   trainer: default
   config:
     iteration_updates: 10
@@ -10,5 +10,5 @@ naive_quadratic:
     learners: 
       - name: naive
         params:
-          lr: 0.5
-          std: 2
+          lr: 0.005
+          std: 5

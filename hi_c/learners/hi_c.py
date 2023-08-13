@@ -37,7 +37,7 @@ class HiC:
         self._sampled_strategy = None
         self._perturbation = None
         self._last_p = None
-        self._baseline = None
+        self._baseline = None  # NOTE: We have implemented a baseline
 
         self._counter = 0
 

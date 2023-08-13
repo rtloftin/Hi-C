@@ -1,9 +1,9 @@
 hi_c_quadratic:
   num_seeds: 8
-  iterations: 100
+  iterations: 800
   trainer: default
   config:
-    iteration_updates: 100
+    iteration_updates: 10
     game: quadratic
     game_config:
       dims: 5
@@ -11,7 +11,7 @@ hi_c_quadratic:
       - name: hi_c
         params:
           std: 0.5
-          lr: 0.001
-          p: 0.01
+          lr: 0.005
+          p: 0.05
           k: 1
           use_baseline: True
