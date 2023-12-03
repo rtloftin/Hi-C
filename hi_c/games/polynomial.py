@@ -12,7 +12,7 @@ class TandemGame:
 
 
 class HamiltonianGame:
-    """The Hamiltonian game (referenced in the SOS paper, but orgininally from a Balduzzi paper)"""
+    """The Hamiltonian game (referenced in the SOS paper, but originally from a Balduzzi paper)"""
 
     def __init__(self, device="cpu"):
         self.strategy_spaces = [Box((1,)), Box((1,))]

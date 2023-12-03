@@ -2,25 +2,30 @@ from abc import ABCMeta, abstractmethod
 import numpy as np
 import torch
 
-from hi_c.util import get_schedule
+from hi_c.learners.schedule import get_schedule
 
-class GradientLearner(metaclass=ABCMeta):
-    
+
+class GradientLearner(metaclass=ABCMeta):  # Why is this an abstract class?  Apparently LOLA also implements this
+    """
+    Abstract base class for all gradient-based learners.  Different learners such as LOLA and Hierarchical learner
+    implement different versions of the `gradient()` function.
+    """
+
     def __init__(self, 
-                 game, 
-                 id, 
+                 game,
+                 player_id,
                  lr=0.005, 
-                 std=0.5, 
+                 initialization_std=0.5,
                  rng=None, 
                  device="cpu"):
-        self.id = id
         self.game = game
-        self.std = std
+        self.player_id = player_id
+        self.initialization_std = initialization_std
         self.device = device
         self.strategy = None
  
         # Get parameter space
-        self.space = game.strategy_spaces[id]
+        self.space = game.strategy_spaces[player_id]
 
         # Construct random number generator if none provided
         self.rng = rng if rng is not None else np.random.default_rng()
@@ -33,12 +38,12 @@ class GradientLearner(metaclass=ABCMeta):
         raise NotImplementedError()
 
     def reset(self):
-        if self.std > 0:
-            initial = self.rng.normal(scale=self.std, size=self.space.shape)
+        if self.initialization_std > 0.:
+            initial = self.rng.normal(scale=self.initialization_std, size=self.space.shape)  # Need a different initializer for the cournot game, clipping to zero
         else:
             initial = np.zeros(self.space.shape)
         
-        initial = initial.clip(self.space.min, self.space.max)
+        # initial = initial.clip(self.space.min, self.space.max)
         self.strategy = torch.tensor(initial, 
                                      requires_grad=True, 
                                      dtype=torch.float,
@@ -47,29 +52,32 @@ class GradientLearner(metaclass=ABCMeta):
 
     def step(self, strategies):
         detached = []
-        for id, strategy in enumerate(strategies):
-            if id != self.id:
+        for player_id, strategy in enumerate(strategies):
+            if player_id != self.player_id:
                 detached.append(strategy.detach().requires_grad_(True))
             else:
-                detached.append(self.strategy)
+                detached.append(self.strategy)  # Our strategy is not detached from the graph
 
         gradient = self.gradient(detached)
 
         with torch.no_grad():
             self.strategy.add_(gradient, alpha=self.lr.step())
-            self.strategy.clamp_(self.space.min, self.space.max)
+            # self.strategy.clamp_(self.space.min, self.space.max)
 
         return self.strategy
 
 
 class NaiveLearner(GradientLearner):
-    """Gradient ascent learner"""
+    """
+    Simple gradient ascent learner.  Performs gradient ascent on the player's individual payoff function, treating
+    other agents' actions as constants.
+    """
 
-    def __init__(self, game, id, **kwargs):
-        super(NaiveLearner, self).__init__(game, id, **kwargs)
+    def __init__(self, game, player_id, **kwargs):
+        super(NaiveLearner, self).__init__(game, player_id, **kwargs)
 
     def gradient(self, strategies):
         payoffs = self.game.payoffs(*strategies)
-        gradient, = torch.autograd.grad([payoffs[self.id]], [self.strategy])
+        gradient, = torch.autograd.grad([payoffs[self.player_id]], [self.strategy])
 
         return gradient

@@ -1,19 +1,27 @@
 import torch
 
-from hi_c.util import get_schedule
 from hi_c.learners.gradient import GradientLearner
 
-class HierarchicalGradient(GradientLearner):
-    """Hierarchical gradient ascent (Fiez et al. 2019)"""
 
-    def __init__(self, game, **kwargs):
-        super(HierarchicalGradient, self).__init__(game, **kwargs)
+class HierarchicalGradient(GradientLearner):  # This was in a state of transition when we dropped development
+    """
+    Hierarchical gradient ascent (Fiez et al. 2019)
+    """
+
+    def __init__(self, game, player_id, **kwargs):
+        super(HierarchicalGradient, self).__init__(game, player_id, **kwargs)
     
-    def _gradient(self, other_strategy):
-        payoff_a, payoff_b = self.game.payoffs(self.strategy, other_strategy)
-        grad_a, grad_b = torch.autograd.grad([payoff_a], [self.strategy, other_strategy], retain_graph=True)
+    def gradient(self, strategies):
+        assert len(strategies) == 2, "Hierarchical gradient learner only supports two-player games"
+        other_id = (self.player_id + 1) % 2
+        other_strategy = strategies[other_id]
 
-        grad, = torch.autograd.grad([payoff_b], [other_strategy], create_graph=True)
+        payoffs = self.game.payoffs(*strategies)
+        grad_a, grad_b = torch.autograd.grad([payoffs[self.player_id]],
+                                             [self.strategy, other_strategy],
+                                             retain_graph=True)
+
+        grad, = torch.autograd.grad([payoffs[other_id]], [other_strategy], create_graph=True)
         
         hessian = []
         for x in grad:

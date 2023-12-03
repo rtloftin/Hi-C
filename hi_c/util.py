@@ -1,8 +1,7 @@
-"""Utility classes for defining differentiable games"""
-import math
-from numbers import Real
+"""Utility classes for defining differentiable games and running experiments"""
 import numpy as np
 import time
+
 
 class Stopwatch:
 
@@ -33,7 +32,7 @@ class Stopwatch:
         return self._elapsed
 
 
-class Box:
+class Box:  # Do we ever use this anywhere?
 
     def __init__(self, shape, min=-np.inf, max=np.inf):
         self.min = min
@@ -54,51 +53,3 @@ class ReversedGame:
     def payoffs(self, strategy_a, strategy_b):
         payoff_a, payoff_b = self._game.payoffs(strategy_b, strategy_a)
         return payoff_b, payoff_a
-    
-
-class FixedSchedule:
-
-    def __init__(self, value):
-        self._value = value
-    
-    def step(self):
-        return self._value
-
-
-class PSeriesSchedule:
-
-    def __init__(self, scale, exponent):
-        self._scale = scale
-        self._exponent = -exponent
-        self._step = 0
-    
-    def step(self):
-        self._step += 1
-        return self._scale * self._step ** self._exponent
-
-
-class LogSchedule:
-
-    def __init__(self, scale):
-        self._scale = scale
-        self._step = 0
-
-    def step(self):
-        self._step += 1
-        return self._scale * math.log(self._step)
-
-
-def get_schedule(value):
-    if isinstance(value, dict):
-        name, params = list(value.items())[0]
-
-        if "p_series" == name:
-            return PSeriesSchedule(**params)
-        elif "logarithmic" == name:
-            return LogSchedule(**params)
-        else:
-            raise ValueError(f"No schedule '{name}' is defined")
-    elif isinstance(value, Real):
-        return FixedSchedule(value)
-    else:
-        raise ValueError("Parameter schedule must either be a real value or a dictionary")
