@@ -1,4 +1,6 @@
 import math
+import matplotlib.pyplot as plot
+import numpy as np
 
 from hi_c.util import Box
 from hi_c.learners.gradient import NaiveLearner
@@ -11,9 +13,9 @@ class CournotLinear:
 
     def __init__(self,
                  initial_price=50,
-                 price_slope=1.5,
+                 price_slope=1,
                  cost_1=1,
-                 cost_2=.5):
+                 cost_2=1):
         self.initial_price = initial_price
         self.price_slope = price_slope
         self.cost_1 = cost_1
@@ -41,17 +43,19 @@ class CournotLinear:
 
 if __name__ == '__main__':
     ITERATIONS = 5000000
-    REPORT = 100000
+    REPORT = 500000
+    THRESHOLD = 297.
 
     game = CournotLinear()
 
     # learner_1 = NaiveLearner(game, 0, lr=PSeriesSchedule(0.01, .55))
     # learner_2 = NaiveLearner(game, 1, lr=PSeriesSchedule(0.01, .55))
 
-    # learner_1 = HierarchicalGradient(game, 0, lr=PSeriesSchedule(0.01, .55))
+    learner_1 = HierarchicalGradient(game, 0, lr=PSeriesSchedule(0.001, .55))
     # learner_2 = NaiveLearner(game, 1, lr=PSeriesSchedule(0.01, .525))
-    # learner_2 = NaiveLearner(game, 1, lr=FixedSchedule(0.1))
+    learner_2 = NaiveLearner(game, 1, lr=FixedSchedule(0.1))
 
+    """
     print("\nInitializing Hi-C learner:")
 
     # Definitely something wrong here
@@ -78,6 +82,7 @@ if __name__ == '__main__':
                     baseline_lambda=0.9,
                     burn_in=50)
     learner_2 = NaiveLearner(game, 1, lr=FixedSchedule(inner_lr))
+    """
 
     strategies = [learner_1.reset(), learner_2.reset()]
     print("\nBEGIN TRAINING\n\n")
@@ -85,12 +90,32 @@ if __name__ == '__main__':
     print(f"Initial strategies: {strategies}")
     print(f"Initial payoffs: {game.payoffs(*strategies)}")
 
+    joint = [s.detach().cpu().numpy() for s in strategies]
+    leader_payoffs = [game.payoffs(*joint)[0]]
+    equilibrium_errors = [sum((target - value)**2 for target, value in zip(game.equilibrium, joint))]
+
+    threshold_point = np.inf
+
     for iteration in range(ITERATIONS):
         strategies = [learner_1.step(strategies), learner_2.step(strategies)]
+
+        # Compute metrics
+        joint = [s.detach().cpu().numpy() for s in strategies]
+        leader_payoffs.append(game.payoffs(*joint)[0])
+        equilibrium_errors.append(sum((target - value) ** 2 for target, value in zip(game.equilibrium, joint)))
+
+        if threshold_point == np.inf and leader_payoffs[-1] >= THRESHOLD:
+            threshold_point = iteration + 1
 
         if (iteration + 1) % REPORT == 0:
             print(f"\nIteration {iteration + 1}:")
             print(f"    strategies: {strategies}")
             print(f"    payoffs: {game.payoffs(*strategies)}\n")
 
-    print("COMPLETE")
+    print(f"COMPLETE - reached leader payoff threshold in {threshold_point} iterations")
+
+    x_axis = np.arange(ITERATIONS + 1)
+    plot.switch_backend("qtagg")
+    plot.clf()
+    plot.plot(x_axis, leader_payoffs)
+    plot.show()

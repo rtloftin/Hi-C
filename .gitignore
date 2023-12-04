@@ -133,3 +133,6 @@ results
 slurm_output
 slurm_scripts
 *.sif
+
+# PyCharm directory
+.idea/
