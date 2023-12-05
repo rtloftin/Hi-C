@@ -41,30 +41,47 @@ class CournotLinear:
         return leader, follower
 
 
+class TandemGame:
+    """The tandem bicycle game from the SOS paper (need to find the reference for this)"""
+
+    def __init__(self):
+        self.strategy_spaces = [Box((1,)), Box((1,))]
+
+    def payoffs(self, params_a, params_b):
+        base = (params_a[0] + params_b[0]) ** 2
+        return base - 2 * params_a[0], base - 2 * params_b[0]
+
+    @property
+    def equilibrium(self):
+        return 0., 0.
+
+
 if __name__ == '__main__':
-    ITERATIONS = 5000000
-    REPORT = 500000
+    ITERATIONS = 200000
+    REPORT = 20000
     THRESHOLD = 297.
 
-    game = CournotLinear()
+    # game = CournotLinear()
+    game = TandemGame()
 
     # learner_1 = NaiveLearner(game, 0, lr=PSeriesSchedule(0.01, .55))
     # learner_2 = NaiveLearner(game, 1, lr=PSeriesSchedule(0.01, .55))
 
-    learner_1 = HierarchicalGradient(game, 0, lr=PSeriesSchedule(0.001, .55))
+    # learner_1 = HierarchicalGradient(game, 0, lr=PSeriesSchedule(0.1, .001))
     # learner_2 = NaiveLearner(game, 1, lr=PSeriesSchedule(0.01, .525))
-    learner_2 = NaiveLearner(game, 1, lr=FixedSchedule(0.1))
+    # learner_2 = NaiveLearner(game, 1, lr=FixedSchedule(0.1))
 
-    """
     print("\nInitializing Hi-C learner:")
 
     # Definitely something wrong here
-    lr_exponent = 0.1
-    perturbation_exponent = 0.6
-    inner_lr = 0.1
+    lr_exponent = 0.001
+    perturbation_exponent = 0.5
+    inner_lr = 0.01
     
-    B = 2. * game.initial_price
-    z = math.log(1. - inner_lr * 2. * game.price_slope)
+    # B = 2. * game.initial_price
+    B = 50
+    # z = math.log(1. - inner_lr * 2. * game.price_slope)
+    z = math.log(1. - inner_lr * 2.)
     commitment_scale = -2. * (perturbation_exponent + 1.) / z
     commitment_offset = -2. * math.log(B) / z
     
@@ -76,13 +93,12 @@ if __name__ == '__main__':
     
     learner_1 = HiC(game, 
                     0, 
-                    lr=PSeriesSchedule(0.001, lr_exponent),
+                    lr=PSeriesSchedule(0.00001, lr_exponent),
                     p=PSeriesSchedule(1., perturbation_exponent),
                     k=LogSchedule(commitment_scale, commitment_offset),
                     baseline_lambda=0.9,
                     burn_in=50)
     learner_2 = NaiveLearner(game, 1, lr=FixedSchedule(inner_lr))
-    """
 
     strategies = [learner_1.reset(), learner_2.reset()]
     print("\nBEGIN TRAINING\n\n")
