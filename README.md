@@ -25,3 +25,11 @@ Target 2-player environments:
 Optimization test problems:
 - Quadratic function
 - Gaussian function
+
+
+# TODOs:
+
+1. Determine whether we still need the pyproject.toml file
+2. Make sure dependencies are up-to-date
+3. Delete bad config yamls
+4. Add running instructions

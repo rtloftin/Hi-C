@@ -1,5 +1,7 @@
 import numpy as np
 
+# TODO: Move this into the main codebase
+
 def strategy_loss(x):
     """
     Seems to compute a loss of -10 for selecting the final action, and 0 otherwise

@@ -6,14 +6,14 @@ import torch
 from torch.multiprocessing import Pool
 import traceback
 
-# TODO: Move run and setup scripts to Amanuensis package for reuse
+# TODO: Move run and setup scripts to Amanuensis package for reuse - We're not building this anymore
 from hi_c import setup_experiments, run_experiment
 
-def print_error(error):
+def print_error(error):  # Callback for python multiprocessing
     traceback.print_exception(type(error), error, error.__traceback__, limit=5)
 
 
-def parse_args():
+def parse_args(): # Parse command line arguments - keep this simple
     parser = argparse.ArgumentParser(description=__doc__,  # TODO: Need a docstring
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 

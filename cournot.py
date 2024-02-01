@@ -1,3 +1,7 @@
+# This script just runs experiments with Hi-C in the Cournot game
+
+# TODO: Move this into the main codebase
+
 import math
 import matplotlib.pyplot as plot
 import numpy as np
@@ -8,7 +12,7 @@ from hi_c.learners.hi_c import HiC
 from hi_c.learners.hierarchical import HierarchicalGradient
 from hi_c.learners.schedule import FixedSchedule, LogSchedule, PSeriesSchedule
 
-
+# This class appears to describe the cournot game with linear costs
 class CournotLinear:
 
     def __init__(self,
@@ -21,27 +25,43 @@ class CournotLinear:
         self.cost_1 = cost_1
         self.cost_2 = cost_2
 
+        # Have to define a strategy space for each player - in this case a scalar production volume
         self.strategy_spaces = (
             Box((1, ), 0., 1000.),
             Box((1, ), 0., 1000.)
         )
 
     def payoffs(self, quantity_1, quantity_2):
-        price = self.initial_price - self.price_slope * (quantity_1 + quantity_2)
-        payoff_1 = quantity_1 * (price - self.cost_1)
-        payoff_2 = quantity_2 * (price - self.cost_2)
+        price = self.initial_price - self.price_slope * (quantity_1 + quantity_2)  # Price goes down as supply goes up
+        payoff_1 = quantity_1 * (price - self.cost_1)  # Payoff is quantity times profit-per-unit
+        payoff_2 = quantity_2 * (price - self.cost_2)  # Game may have asymmetric costs
 
-        return payoff_1, payoff_2  # TODO: Make sure we have the sign right for the gradient step
+        return payoff_1, payoff_2  # TODO: Make sure we have the sign right for the gradient step - what was this for?
 
+    # Used to compute the "distance" from the unique Stackelberg equilibrium (not obvious that is what this is)
     @property
     def equilibrium(self):
+        """
+            U(q_2 : q_1) = q_2 P(q_1 + q_2) + C_2(q_2)
+                         = q_2 (p_0 - s (q_1 + q_2) - c_2)
+                         = q_2 (p_0 - s q_1 - c_2) - s (q_2)^2
+            U'(q_2 : q_1) = (p_0 - s q_1 - c_2) - 2 s q_2
+                     q_2 =  (p_0 - s q_1 - c_2) / 2 s = r(q_1)
+            r'(q_1) = -2
+            U(q_1) = q_1 (p_0 - s (q_1 + r(q_1)) - c_1)
+            U'(q_1) = (p_0 - c_1) - 2 s q_1 - s (r(q_1) - 2 q_1)
+                    = (p_0 - c_1) - (p_0 - s q_1 - c_2) / 2
+                    = s q_1 / 2 - c_1 + c_2 / 2 + p_0 / 2
+                q_1 = (2 / s) (c_1 - c_2 / 2 - p_0 / 2)
+                    = (2 c_1 - c_2 - p_0) / s
+        """
         leader = (0.5 * (self.initial_price + self.cost_2) - self.cost_1) / self.price_slope
-        follower = (self.initial_price - self.price_slope * leader - self.cost_2) / (2 * self.price_slope)
+        follower = 0.5 * (self.initial_price - self.price_slope * leader - self.cost_2) / self.price_slope
 
         return leader, follower
 
 
-class TandemGame:
+class TandemGame:  # I Don't think we had results for this
     """The tandem bicycle game from the SOS paper (need to find the reference for this)"""
 
     def __init__(self):
@@ -56,14 +76,15 @@ class TandemGame:
         return 0., 0.
 
 
-if __name__ == '__main__':
-    ITERATIONS = 200000
+if __name__ == '__main__':  # TODO: Move this to a YAML configuraation
+    ITERATIONS = 200000  # NOTE: This appears to be the number of "inner" iterations
     REPORT = 20000
-    THRESHOLD = 297.
+    THRESHOLD = 297.  # NOTE: This allows us to compute the time required to reach
 
     # game = CournotLinear()
     game = TandemGame()
 
+    # NOTE: These are altogether different experiments
     # learner_1 = NaiveLearner(game, 0, lr=PSeriesSchedule(0.01, .55))
     # learner_2 = NaiveLearner(game, 1, lr=PSeriesSchedule(0.01, .55))
 
@@ -79,9 +100,9 @@ if __name__ == '__main__':
     inner_lr = 0.01
     
     # B = 2. * game.initial_price
-    B = 50
+    B = 50  # NOTE: Why are we using this rather than the actual game parameters? - the tandem game doesn't define this
     # z = math.log(1. - inner_lr * 2. * game.price_slope)
-    z = math.log(1. - inner_lr * 2.)
+    z = math.log(1. - inner_lr * 2.)  # NOTE: again, the tandem game doesn't define the necessary parameters
     commitment_scale = -2. * (perturbation_exponent + 1.) / z
     commitment_offset = -2. * math.log(B) / z
     
@@ -93,7 +114,7 @@ if __name__ == '__main__':
     
     learner_1 = HiC(game, 
                     0, 
-                    lr=PSeriesSchedule(0.00001, lr_exponent),
+                    lr=PSeriesSchedule(0.00001, lr_exponent),  # NOTE: Why is the learning rate so small?
                     p=PSeriesSchedule(1., perturbation_exponent),
                     k=LogSchedule(commitment_scale, commitment_offset),
                     baseline_lambda=0.9,
@@ -130,8 +151,9 @@ if __name__ == '__main__':
 
     print(f"COMPLETE - reached leader payoff threshold in {threshold_point} iterations")
 
+    # NOTE: Already have plotting code
     x_axis = np.arange(ITERATIONS + 1)
     plot.switch_backend("qtagg")
     plot.clf()
-    plot.plot(x_axis, leader_payoffs)
+    plot.plot(x_axis, leader_payoffs)  # NOTE: Plotting leader payoffs
     plot.show()
