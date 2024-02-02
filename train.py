@@ -6,21 +6,20 @@ import torch
 from torch.multiprocessing import Pool
 import traceback
 
-# TODO: Move run and setup scripts to Amanuensis package for reuse - We're not building this anymore
 from hi_c import setup_experiments, run_experiment
 
-def print_error(error):  # Callback for python multiprocessing
+
+def print_error(error):
     traceback.print_exception(type(error), error, error.__traceback__, limit=5)
 
 
-def parse_args(): # Parse command line arguments - keep this simple
+def parse_args():
     parser = argparse.ArgumentParser(description=__doc__,  # TODO: Need a docstring
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    # TODO: Add support for launching from an existing trial directory
     parser.add_argument("config_files", type=str, nargs="*",
-                        help="provide one or more experiment config files")
-    parser.add_argument("-o", "--output-path", type=str, default="results/debug",
+                        help="paths to one or more .yaml experiment configs")
+    parser.add_argument("-o", "--output-path", type=str, default="temp_results",
                         help="directory in which we should save results")
 
     parser.add_argument("--num-seeds", type=int,
@@ -40,9 +39,7 @@ def parse_args(): # Parse command line arguments - keep this simple
 
 
 if __name__ == '__main__':
-    # NOTE: Two important functions here -> "setup_experiments" and "run_experiment" - would it be simpler to combine these?
-
-    args, unknown = parse_args()  # NOTE: In the `interactive_agents` repo, this is - what, what is it?
+    args, unknown = parse_args()
 
     # Select torch device
     device = "cuda" if args.gpu else "cpu"
@@ -52,7 +49,7 @@ if __name__ == '__main__':
                               args.output_path, 
                               num_seeds=args.num_seeds, 
                               seeds=args.seeds, 
-                              arguments=unknown)  # NOTE: In the new framework, experiment directories are initialized for each seed first
+                              arguments=unknown)
 
     # Limit Torch CPU parallelism - This must be set BEFORE we initialize the process pool
     torch.set_num_interop_threads(1)

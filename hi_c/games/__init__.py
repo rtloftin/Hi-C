@@ -1,6 +1,7 @@
 from hi_c.games.matrix import MatrixGame, IteratedMatrixGame
 from hi_c.games.polynomial import TandemGame, HamiltonianGame
 from hi_c.games.optimization import Quadratic, Gaussian
+from hi_c.games.cournot import Cournot
 
 GAMES = {
     "iterated": IteratedMatrixGame,
@@ -9,7 +10,9 @@ GAMES = {
     "hamiltonian": HamiltonianGame,
     "quadratic": Quadratic,
     "gaussian": Gaussian,
+    "cournot": Cournot,
 }
+
 
 def get_game_class(name):
     if name not in GAMES:
@@ -18,4 +21,4 @@ def get_game_class(name):
     return GAMES[name]
 
 
-__all__ = []
+__all__ = [get_game_class]

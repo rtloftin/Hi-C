@@ -129,10 +129,7 @@ dmypy.json
 .pyre/
 
 # Local outputs
-results
-slurm_output
-slurm_scripts
-*.sif
+temp_results/
 
 # PyCharm directory
 .idea/

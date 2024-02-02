@@ -22,9 +22,10 @@ def get_hi_c():
 LEARNERS = {
     "naive": get_naive,
     "lola": get_lola,
-    # "hierarchical": get_hierarchical,
+    # "hierarchical": get_hierarchical,  # NOTE: Why did we remove this, presumably it doesn't compile?
     "hi_c": get_hi_c,
 }
+
 
 def get_learner_class(name):
     if name not in LEARNERS:
@@ -33,4 +34,4 @@ def get_learner_class(name):
     return LEARNERS[name]()
 
 
-__all__ = []
+__all__ = [get_learner_class]

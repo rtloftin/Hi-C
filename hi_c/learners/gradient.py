@@ -5,18 +5,16 @@ import torch
 from hi_c.learners.schedule import get_schedule
 
 
-class GradientLearner(metaclass=ABCMeta):  # Why is this an abstract class?  Apparently LOLA also implements this
-    """
-    Abstract base class for all gradient-based learners.  Different learners such as LOLA and Hierarchical learner
-    implement different versions of the `gradient()` function.
-    """
+class GradientLearner(metaclass=ABCMeta):
+    """Abstract base class for all gradient-based learners.  Different learners such as LOLA and the Hierarchical
+    learner implement different versions of the `gradient()` function."""
 
     def __init__(self, 
                  game,
                  player_id,
                  lr=0.005, 
                  initialization_std=0.5,
-                 rng=None,  # NOTE: This is how we do random seeding now
+                 rng=None,
                  device="cpu"):
         self.game = game
         self.player_id = player_id

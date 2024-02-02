@@ -39,6 +39,10 @@ class Box:  # Do we ever use this anywhere?
         self.max = max
         self.shape = shape
 
+    def sample(self, rng):
+        pass
+
+
 
 class ReversedGame:
     """Wraps an existing differentiable game with the player IDs reversed"""

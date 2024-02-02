@@ -5,7 +5,7 @@ import torch
 
 from hi_c.games import get_game_class
 from hi_c.learners import get_learner_class
-from hi_c.util import ReversedGame, Stopwatch
+from hi_c.util import Stopwatch
 
 
 class Experiment(metaclass=ABCMeta):
@@ -16,24 +16,26 @@ class Experiment(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def save_artifacts(self, dir):
+    def save_artifacts(self, path):
         raise NotImplementedError()
     
 
 class SimultaneousLearning(Experiment):
+    """Multi-agent learning experiment in which players update their strategies
+    simultaneously, given their partners' most recent strategies."""
 
     def __init__(self, config, seed, device):
 
-        # NOTE: There is a more "correct" way of doing random seeding
         # Seed random number generators
-        np.random.seed(seed)  # NOTE: Cannot be sure all environments use the seed we give them
-        torch.manual_seed(seed)
-
         seq = np.random.SeedSequence(seed)
         rng = np.random.default_rng(seq)
 
+        # Seed numpy and torch just in case the local numpy RNG is bypassed
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+
         # Get the numer of gradient updates to perform per iteration
-        self._iteration_updates = config.get("iteration_updates", 10)
+        self._steps_per_iter = config.get("steps_per_iter", 1)
 
         # Construct differentiable game
         assert "game" in config, "Must specify game through the 'game' field"
@@ -47,14 +49,14 @@ class SimultaneousLearning(Experiment):
 
         self._learners = []
         self._strategies = []
-        for id, conf in enumerate(config["learners"]):
-            cls = get_learner_class(conf.get("name", "naive"))
+        for pid, conf in enumerate(config["learners"]):
+            cls = get_learner_class(conf.get("name", "naive"))  # Default to "naive" gradient ascent
             params = conf.get("params", {})
-            learner = cls(self._game, id, rng=rng, device=device, **params)
+            learner = cls(self._game, pid, rng=rng, device=device, **params)
             self._learners.append(learner)
             self._strategies.append(learner.reset())
 
-        # Initialize history
+        # Initialize strategy history
         self._history = [[strategy.numpy(force=True)] for strategy in self._strategies]
 
         # Set up statistics
@@ -63,7 +65,7 @@ class SimultaneousLearning(Experiment):
 
     def iterate(self):
         self._timer.start()
-        for _ in range(self._iteration_updates):
+        for _ in range(self._steps_per_iter):
             new_strategies = [learner.step(self._strategies) for learner in self._learners]
             self._strategies = new_strategies
         
@@ -71,20 +73,20 @@ class SimultaneousLearning(Experiment):
         self._timer.stop()
 
         # Save final joint strategy for each iteration
-        for id, strategy in enumerate(self._strategies):
-            self._history[id].append(strategy.numpy(force=True))
+        for pid, strategy in enumerate(self._strategies):
+            self._history[pid].append(strategy.numpy(force=True))
 
-        # Return iteration statistics
-        self._total_steps += self._iteration_updates
+        # Return iteration statistics (the "global" key helps with tensorboard)
+        self._total_steps += self._steps_per_iter
         stats = {
             "global/iteration_time": self._timer.latest,
             "global/total_time": self._timer.elapsed,
             "global/total_steps": self._total_steps
         }
 
-        total_payoff = 0
-        for id, payoff in enumerate(payoffs):
-            payoff = payoff.item()
+        total_payoff = 0.
+        for pid, payoff in enumerate(payoffs):
+            payoff = payoff.item()  # Payoffs are scalar torch tensors
             total_payoff += payoff
             stats[f"global/payoff_{id}"] = payoff
         
@@ -93,8 +95,8 @@ class SimultaneousLearning(Experiment):
 
     def save_artifacts(self, path):  # TODO: Drop this if we don't use it
         os.makedirs(path, exist_ok=True)
-        for id, strategies in enumerate(self._history):
-            path = os.path.join(path, f"strategies_{id}")
+        for pid, strategies in enumerate(self._history):
+            path = os.path.join(path, f"strategies_{pid}")
             np.save(path, strategies, allow_pickle=False)
 
 
