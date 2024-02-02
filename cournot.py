@@ -12,6 +12,7 @@ from hi_c.learners.hi_c import HiC
 from hi_c.learners.hierarchical import HierarchicalGradient
 from hi_c.learners.schedule import FixedSchedule, LogSchedule, PSeriesSchedule
 
+
 # This class appears to describe the cournot game with linear costs
 class CournotLinear:
 
@@ -73,16 +74,16 @@ class TandemGame:  # I Don't think we had results for this
 
     @property
     def equilibrium(self):
-        return 0., 0.
+        return 0., 0.  # NOTE: This is NOT necessarily the Stackelberg solution
 
 
 if __name__ == '__main__':  # TODO: Move this to a YAML configuraation
-    ITERATIONS = 200000  # NOTE: This appears to be the number of "inner" iterations
-    REPORT = 20000
-    THRESHOLD = 297.  # NOTE: This allows us to compute the time required to reach
+    ITERATIONS = 1000000  # NOTE: This appears to be the number of "inner" iterations
+    REPORT = 25000
+    THRESHOLD = 297.  # NOTE: This allows us to compute the time required to reach the Stackelberg equilibrium payoff
 
-    # game = CournotLinear()
-    game = TandemGame()
+    game = CournotLinear()
+    # game = TandemGame()
 
     # NOTE: These are altogether different experiments
     # learner_1 = NaiveLearner(game, 0, lr=PSeriesSchedule(0.01, .55))
@@ -95,14 +96,16 @@ if __name__ == '__main__':  # TODO: Move this to a YAML configuraation
     print("\nInitializing Hi-C learner:")
 
     # Definitely something wrong here
-    lr_exponent = 0.001
-    perturbation_exponent = 0.5
-    inner_lr = 0.01
+    # lr_exponent = 0.001
+    lr_exponent = 0.1
+    # perturbation_exponent = 0.5
+    perturbation_exponent = 0.6
+    inner_lr = 0.1
     
-    # B = 2. * game.initial_price
-    B = 50  # NOTE: Why are we using this rather than the actual game parameters? - the tandem game doesn't define this
-    # z = math.log(1. - inner_lr * 2. * game.price_slope)
-    z = math.log(1. - inner_lr * 2.)  # NOTE: again, the tandem game doesn't define the necessary parameters
+    B = 2. * game.initial_price
+    # B = 50  # NOTE: the tandem game doesn't define the "price slope"
+    z = math.log(1. - inner_lr * 2. * game.price_slope)
+    # z = math.log(1. - inner_lr * 2.)  # NOTE: again, the tandem game doesn't define the necessary parameters
     commitment_scale = -2. * (perturbation_exponent + 1.) / z
     commitment_offset = -2. * math.log(B) / z
     
@@ -114,7 +117,8 @@ if __name__ == '__main__':  # TODO: Move this to a YAML configuraation
     
     learner_1 = HiC(game, 
                     0, 
-                    lr=PSeriesSchedule(0.00001, lr_exponent),  # NOTE: Why is the learning rate so small?
+                    # lr=PSeriesSchedule(0.00001, lr_exponent),  # NOTE: Why is the learning rate so small?
+                    lr=PSeriesSchedule(0.001, lr_exponent),
                     p=PSeriesSchedule(1., perturbation_exponent),
                     k=LogSchedule(commitment_scale, commitment_offset),
                     baseline_lambda=0.9,

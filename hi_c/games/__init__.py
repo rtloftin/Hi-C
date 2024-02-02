@@ -1,9 +1,9 @@
-from hi_c.games.matrix import IteratedGame, MatrixGame
+from hi_c.games.matrix import MatrixGame, IteratedMatrixGame
 from hi_c.games.polynomial import TandemGame, HamiltonianGame
 from hi_c.games.optimization import Quadratic, Gaussian
 
 GAMES = {
-    "iterated": IteratedGame,
+    "iterated": IteratedMatrixGame,
     "matrix": MatrixGame,
     "tandem": TandemGame,
     "hamiltonian": HamiltonianGame,

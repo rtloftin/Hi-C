@@ -96,6 +96,7 @@ class HiC:
 
                 self._strategy.add_(grad, alpha=self._lr.step())
 
+                # TODO: Probably don't need this
                 # Test whether we are hitting NaN or (inf,-inf) first
                 if any(torch.isnan(self._strategy)):
                     raise ValueError(f"NaN value encountered (strategy: {self._strategy}, "

@@ -3,16 +3,18 @@
 import argparse
 from collections import namedtuple
 import os
-import pandas  # NOTE: Pandas may not be an option, as it seems to throw a security error - even if this script is not itself a vulnerability.
+import pandas  # NOTE: Pandas may not be an option, as it seems to throw a security error - probably not an issue anymore
 
 import matplotlib.pyplot as plot
 import matplotlib.patches as patches
 import matplotlib.cm as colors
 import numpy as np
+
+# Why do we need SciPy?
 import scipy
 import scipy.stats
 
-# TODO: Restore support for incomplete experiments by loading tensorbord files
+# TODO: Restore support for incomplete experiments by loading tensorboard files
 
 def parse_args():
     parser = argparse.ArgumentParser("Generates a plot of a scalar-valued time series from a set of experiments.")

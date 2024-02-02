@@ -1,8 +1,6 @@
-from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime, timezone
-from git import Repo
 import numpy as np
 import os
 import os.path
@@ -11,99 +9,15 @@ from tensorboardX import SummaryWriter
 import yaml
 
 from hi_c.grid_search import grid_search
-from hi_c.trainers import get_trainer_class
-
-# TODO: Get the Hi-C experiments running on the cluster
-# TODO: Move the experiment management code to the Amanuensis package
+from hi_c.experiment import get_experiment_class
 
 
-def timestamp():
+def get_timestamp():
     return datetime.now(timezone.utc).strftime("%Y_%m_%d_T%H_%M")
 
 
-def git_commit():
-    try:
-        repo = Repo(search_parent_directories=True)
-        return str(repo.active_branch.commit)
-    except:
-        return "unknown"
-
-
-# TODO: Add support for loading from checkpoints
-def run_experiment(path,
-                   device='cpu',
-                   flush_secs=200):
-
-    # Check that the directory exists
-    assert os.path.isdir(path), f"No directory '{path}' exists"
-
-    # Attempt to load the configuration file
-    with open(os.path.join(path, "config.yaml")) as config_file:
-        config = yaml.load(config_file, Loader=yaml.FullLoader)
-
-    # Get experiment name and config dictionary
-    name, config = next(iter(config.items()))
-
-    # Get the random seed for this trial
-    assert "seed" in config, "No 'seed' field in config file"
-    seed = config["seed"]
-
-    # Print a message indicated we have started the experiment
-    print(f"Launching {name}, seed {seed}, from path: {path}")
-
-    # Update run log for experiment
-    with open(os.path.join(path, "run_log"), "a") as log_file:
-        log_file.write(f"Experiment started at {timestamp()}, git commit: {git_commit()}")
-
-    # TODO: Support training dependent termination criteria
-    # Get the maximum number of training iterations
-    max_iterations = config.get("iterations", 100)
-
-    # Build trainer
-    trainer_cls = get_trainer_class(config.get("trainer", "default"))
-    trainer = trainer_cls(config.get("config", {}), seed=seed, device=device)
-
-    # Run trainer with TensorboardX logging
-    stat_values = defaultdict(list)
-    stat_indices = defaultdict(list)
-    iteration = 0
-    complete = False
-    
-    with SummaryWriter(path, flush_secs=flush_secs) as writer:
-        while not complete:
-            stats = trainer.train()
-
-            # TODO: Flatten stats dicts automatically
-            # Write statistics to tensorboard and append to data series
-            for key, value in stats.items():
-                writer.add_scalar(key, value, iteration)
-                stat_values[key].append(value)
-                stat_indices[key].append(iteration)
-
-            # TODO: Support for checkpointing
-
-            # Check termination conditions
-            iteration += 1
-            if iteration >= max_iterations:
-                complete = True
-
-    # Build and save data frame for easier analysis
-    series = {}
-    for key, values in stat_values.items():
-        series[key] = pandas.Series(np.asarray(values), np.asarray(stat_indices[key]))
-
-    dataframe = pandas.DataFrame(series)
-    dataframe.to_csv(os.path.join(path, "results.csv"))
-
-    # TODO: Allow intermediate artifacts to be saved
-    # Save any artifacts
-    artifact_path = os.path.join(path, "artifacts")
-    os.makedirs(artifact_path, exist_ok=True)
-    trainer.save_artifacts(artifact_path)
-
-
 def get_experiment_dir(base_path, name, index_digits=3):
-    name = name + "_" + timestamp()
+    name = name + "_" + get_timestamp()
     path = os.path.join(base_path, name)
 
     idx = 0
@@ -126,7 +40,7 @@ def setup_seed(base_path, name, config, seed):
     assert not os.path.exists(path), f"found existing path '{path}', aborting setup"
     os.makedirs(path)
 
-    # Save the configuration for this seed
+    # Save the configuration for this seed - will be loaded when experiment is run
     config_path = os.path.join(path, "config.yaml")
     with open(config_path, 'w') as config_file:
         yaml.dump({name: config}, config_file)
@@ -137,7 +51,7 @@ def setup_seed(base_path, name, config, seed):
 def setup_experiment(base_path, name, config):
     path = get_experiment_dir(base_path, name)
 
-    # Save configuration - used for hyperparameter tuning
+    # Save configuration - useful for offline hyperparameter tuning
     config_path = os.path.join(path, "config.yaml")
     with open(config_path, 'w') as config_file:
         yaml.dump({name: config}, config_file)
@@ -146,7 +60,7 @@ def setup_experiment(base_path, name, config):
     num_seeds = config.pop("num_seeds", 1)
     seeds = config.pop("seeds", list(range(num_seeds)))
 
-    # Set up individual seeds
+    # Set up experiment directories for individual seeds
     return [setup_seed(path, name, config, seed) for seed in seeds]
 
 
@@ -176,20 +90,82 @@ def setup_experiments(config_files,
         if seeds is not None:
             config["seeds"] = seeds
         
-        # Add custom arguments to config if needed
+        # Add custom command-line arguments to config if needed
         if arguments is not None:
             config["arguments"] = arguments
 
-        # Get hyperparameter variations if specified
+        # Get hyperparameter variations the config contains `grid_search` keys
         variations = grid_search(name, config)
     
         # Set up experiment directories
         if variations is None:
             paths[name] += setup_experiment(output_path, name, config)
-        else:  # NOTE: Hyperparameter sweep
+        else:  # Hyperparameter sweep - setup subdirectories for each configuration
             base_path = get_experiment_dir(output_path, name)
 
             for var_name, var_config in variations.items():
                 paths[name] += setup_experiment(base_path, var_name, var_config)
 
     return paths
+
+
+def run_experiment(path,
+                   device='cpu',
+                   flush_secs=180,
+                   csv=True,
+                   verbose=True):
+
+    # Check that the experiment directory exists
+    assert os.path.isdir(path), f"No directory '{path}' exists"
+
+    # Attempt to load the configuration file
+    with open(os.path.join(path, "config.yaml")) as config_file:
+        config = yaml.load(config_file, Loader=yaml.FullLoader)
+
+    # Get experiment name and config dictionary
+    name, config = next(iter(config.items()))
+
+    # Get the random seed for this trial
+    assert "seed" in config, "No 'seed' field in config file"
+    seed = config["seed"]
+
+    # Get the maximum number of training iterations
+    max_iterations = config.get("iterations", 100)
+
+    # Print a message indicated we have started the experiment
+    if verbose:
+        print(f"Launching {name}, seed: {seed}, num iterations: {max_iterations}")
+
+    # Build trainer - really this is an "experiment" rather than a "trainer"
+    trainer_cls = get_trainer_class(config.get("trainer", "default"))
+    trainer = trainer_cls(config.get("config", {}), seed=seed, device=device)
+
+    # If requested, accumulate statistics and save to a CSV file
+    stat_values = defaultdict(list)
+    stat_indices = defaultdict(list)
+
+    # Run trainer with TensorboardX logging
+    with SummaryWriter(path, flush_secs=flush_secs) as writer:
+        for iteration in range(max_iterations):
+            stats = trainer.iterate()
+
+            # Write statistics to tensorboard, and accumulate if requested
+            for key, value in stats.items():
+                writer.add_scalar(key, value, iteration)
+
+                if csv:
+                    stat_values[key].append(value)
+                    stat_indices[key].append(iteration)
+
+    # If requested, save results to a CSV file for more convenient analysis - do any of the analysis scripts use these?
+    if csv:
+        series = {}
+        for key, values in stat_values.items():
+            series[key] = pandas.Series(np.asarray(values), np.asarray(stat_indices[key]))
+
+        dataframe = pandas.DataFrame(series)
+        dataframe.to_csv(os.path.join(path, "results.csv"))
+
+    # Allow the experiment to save any artifacts, such as strategies - drop this if we never use it
+    artifact_path = os.path.join(path, "artifacts")
+    trainer.save_artifacts(artifact_path)

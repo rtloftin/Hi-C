@@ -31,22 +31,23 @@ def parse_args(): # Parse command line arguments - keep this simple
     parser.add_argument("-n", "--num-cpus", type=int, default=1,
                         help="the number of parallel experiments to launch")
     parser.add_argument("-g", "--gpu", action="store_true",
-                        help="enable GPU acceleration if available")
+                        help="enable GPU acceleration if available")  # NOTE: We're never going to use the GPU
 
     parser.add_argument("--flush-secs", type=int, default=60,
-                        help="number of seconds after which we should flush the training longs (default 60)")
-
+                        help="number of seconds after which we should flush the training logs (default 60)")
 
     return parser.parse_known_args()
 
 
 if __name__ == '__main__':
-    args, unknown = parse_args()  # NOTE: In the `interactive_agents` repo, this is 
+    # NOTE: Two important functions here -> "setup_experiments" and "run_experiment" - would it be simpler to combine these?
+
+    args, unknown = parse_args()  # NOTE: In the `interactive_agents` repo, this is - what, what is it?
 
     # Select torch device
     device = "cuda" if args.gpu else "cpu"
 
-    # Setup experiments
+    # Setup experiments  # NOTE: Does this handle "grid_search" commands?
     paths = setup_experiments(args.config_files, 
                               args.output_path, 
                               num_seeds=args.num_seeds, 

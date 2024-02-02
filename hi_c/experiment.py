@@ -7,15 +7,12 @@ from hi_c.games import get_game_class
 from hi_c.learners import get_learner_class
 from hi_c.util import ReversedGame, Stopwatch
 
-class Trainable(metaclass=ABCMeta):
+
+class Experiment(metaclass=ABCMeta):
     """Abstract base class for iterative computational experiments."""
 
     @abstractmethod
-    def train(self):
-        raise NotImplementedError()
-    
-    @abstractmethod
-    def save_checkpoint(self, dir):
+    def iterate(self):
         raise NotImplementedError()
 
     @abstractmethod
@@ -23,10 +20,11 @@ class Trainable(metaclass=ABCMeta):
         raise NotImplementedError()
     
 
-class SimultaneousTrainer(Trainable):
+class SimultaneousLearning(Experiment):
 
     def __init__(self, config, seed, device):
 
+        # NOTE: There is a more "correct" way of doing random seeding
         # Seed random number generators
         np.random.seed(seed)  # NOTE: Cannot be sure all environments use the seed we give them
         torch.manual_seed(seed)
@@ -63,7 +61,7 @@ class SimultaneousTrainer(Trainable):
         self._timer = Stopwatch()
         self._total_steps = 0
 
-    def train(self):
+    def iterate(self):
         self._timer.start()
         for _ in range(self._iteration_updates):
             new_strategies = [learner.step(self._strategies) for learner in self._learners]
@@ -93,17 +91,15 @@ class SimultaneousTrainer(Trainable):
         stats["global/total_payoff"] = total_payoff
         return stats
 
-    def save_checkpoint(self, dir):
-        raise NotImplementedError()
-
-    def save_artifacts(self, dir):
+    def save_artifacts(self, path):  # TODO: Drop this if we don't use it
+        os.makedirs(path, exist_ok=True)
         for id, strategies in enumerate(self._history):
-            path = os.path.join(dir, f"strategies_{id}")
+            path = os.path.join(path, f"strategies_{id}")
             np.save(path, strategies, allow_pickle=False)
 
 
-def get_trainer_class(name):
+def get_experiment_class(name):
     if name != "default":
-        raise ValueError(f"Trainer {name} is not defined")
+        raise ValueError(f"Experiment '{name}' is not defined")
 
-    return SimultaneousTrainer
+    return SimultaneousLearning

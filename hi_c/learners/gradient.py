@@ -16,7 +16,7 @@ class GradientLearner(metaclass=ABCMeta):  # Why is this an abstract class?  App
                  player_id,
                  lr=0.005, 
                  initialization_std=0.5,
-                 rng=None, 
+                 rng=None,  # NOTE: This is how we do random seeding now
                  device="cpu"):
         self.game = game
         self.player_id = player_id
@@ -38,12 +38,14 @@ class GradientLearner(metaclass=ABCMeta):  # Why is this an abstract class?  App
         raise NotImplementedError()
 
     def reset(self):
-        if self.initialization_std > 0.:
-            initial = self.rng.normal(scale=self.initialization_std, size=self.space.shape)  # Need a different initializer for the cournot game, clipping to zero
+        if self.initialization_std > 0.:  # NOTE: Initialization handled by numpy, not torch
+            # Need a different initializer for the cournot game, clipping to zero - how did we fix this? - seems we didn't, starting at zero does work
+            # May want to implement sampling from the strategy space, something Gym already does
+            initial = self.rng.normal(scale=self.initialization_std, size=self.space.shape)
         else:
             initial = np.zeros(self.space.shape)
         
-        # initial = initial.clip(self.space.min, self.space.max)
+        # initial = initial.clip(self.space.min, self.space.max)  # NOTE: We turned this off, wouldn't that create issues for the Cournot game?
         self.strategy = torch.tensor(initial, 
                                      requires_grad=True, 
                                      dtype=torch.float,

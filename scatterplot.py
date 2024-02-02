@@ -3,6 +3,8 @@ import os
 import os.path
 import re
 
+# TODO: This was never fully implemented - we had code that plotted this in one of the notebooks though
+
 if __name__ == '__main__':
     DIR = "results/debug/naive_naive_ipd_2023_03_14_T18_30"
 
