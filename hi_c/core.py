@@ -172,3 +172,37 @@ def run_experiment(path,
     # Allow the experiment to save any artifacts, such as strategies - drop this if we never use it
     artifact_path = os.path.join(path, "artifacts")
     trainer.save_artifacts(artifact_path)
+
+
+def load_experiments(args):
+
+    # NOTE: Shouldn't need this anymore
+    if len(args) % 2 != 0:  # NOTE: Need an even number of items (label experiment pairs)
+        raise ValueError("Must provide a label for each experiment")
+
+    # NOTE: The same experiment may have multiple labels now, as we are plotting different data series from the same experiment
+    experiments = dict()  # NOTE: Results for each labeled experiment
+
+    for index in range(0, len(args), 2):  # NOTE: Steps through each label-experiment pair
+        directory = args[index + 1]  # NOTE: Second item is a string path to a directory of experimental results
+        runs = []  # NOTE: These are individual random seeds
+
+        if not os.path.isdir(directory):
+            raise Exception(f"Experiment directory {directory} does not exist")
+
+        for obj in os.listdir(directory):  # NOTE: Grabs all sub-directories, regardless of their name
+            path = os.path.join(directory, obj)
+
+            if os.path.isdir(path):
+                # NOTE: Loads the entire table with all columns - could be slow
+                data = pandas.read_csv(
+                    os.path.join(path, "results.csv"))  # NOTE: Change this to 'results.csv' to work with our data
+
+                # Filter out empy data series
+                if data.shape[0] > 0:
+                    runs.append(data)
+
+        experiments[
+            args[index]] = runs  # NOTE: Stores each table, for each seed, under the given label of the experiment
+
+    return experiments

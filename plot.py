@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
 """Script for generating plots from CSV files."""
 import argparse
 from collections import namedtuple
 import os
-import pandas  # NOTE: Pandas may not be an option, as it seems to throw a security error - probably not an issue anymore
+import pandas
 
 import matplotlib.pyplot as plot
 import matplotlib.patches as patches
@@ -14,13 +13,12 @@ import numpy as np
 import scipy
 import scipy.stats
 
-# TODO: Restore support for incomplete experiments by loading tensorboard files
 
 def parse_args():
     parser = argparse.ArgumentParser("Generates a plot of a scalar-valued time series from a set of experiments.")
 
     parser.add_argument("experiments", type=str, nargs="*", 
-                        help="labels and directories of experiments to plot (label1 dir1 label2 dir2 ...)")
+                        help="labels and directories of experiments to plot (label1 dir1 label2 dir2 ...)")  # No way to plot multiple series from the same experiment
     parser.add_argument("--output", default="mean_return", type=str,
                         help="path to the image file where the plot will be saved")
     parser.add_argument("--x-axis", default="total_episodes", type=str, 
@@ -43,6 +41,7 @@ def parse_args():
     return parser.parse_args()
 
 
+# TODO: Move this to core.py
 def load_experiments(args):
     if len(args) % 2 != 0:  # NOTE: Need an even number of items (label experiment pairs)
         raise ValueError("Must provide a label for each experiment")

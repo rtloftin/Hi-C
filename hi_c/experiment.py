@@ -93,10 +93,10 @@ class SimultaneousLearning(Experiment):
         stats["global/total_payoff"] = total_payoff
         return stats
 
-    def save_artifacts(self, path):
-        os.makedirs(path, exist_ok=True)
+    def save_artifacts(self, directory):
+        os.makedirs(directory, exist_ok=True)
         for pid, strategies in enumerate(self._history):
-            path = os.path.join(path, f"strategies_{pid}")
+            path = os.path.join(directory, f"strategies_{pid}")
             np.save(path, strategies, allow_pickle=False)
 
 

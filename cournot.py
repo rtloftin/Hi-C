@@ -116,9 +116,6 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    # Select torch device
-    device = "cuda" if args.gpu else "cpu"
-
     # Setup experiments
     paths = setup_experiments(init_configs(),
                               args.output_path,
@@ -134,7 +131,7 @@ if __name__ == '__main__':
         experiments = []
         for path in itertools.chain.from_iterable(paths.values()):
             experiments.append(pool.apply_async(run_experiment, (path,), {
-                "device": device,
+                "device": "cpu",
                 "flush_secs": args.flush_secs
             }, error_callback=print_error))
 

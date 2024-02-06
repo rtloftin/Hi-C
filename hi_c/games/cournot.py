@@ -21,6 +21,7 @@ class Cournot:
                  price_slope=1,
                  cost_1=1,
                  cost_2=1,
+                 init_range=50.,
                  device="cpu"):
         self.initial_price = initial_price
         self.price_slope = price_slope
@@ -28,8 +29,8 @@ class Cournot:
         self.cost_2 = cost_2
 
         self.strategy_spaces = [
-            Box(0., 500., (1, )),
-            Box(0., 500., (1, ))
+            Box(0., init_range, (1, )),
+            Box(0., init_range, (1, ))
         ]
 
     def payoffs(self, quantity_1, quantity_2):
