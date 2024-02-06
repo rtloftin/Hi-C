@@ -64,20 +64,23 @@ def setup_experiment(base_path, name, config):
     return [setup_seed(path, name, config, seed) for seed in seeds]
 
 
-def setup_experiments(config_files,
+def setup_experiments(configs,
                       output_path,
                       num_seeds=None, 
                       seeds=None, 
                       arguments=None):
     
-    # Load config files and combine them into a single dictionary
-    if isinstance(config_files, str):
-        config_files = [config_files]
+    # Load config files (if necessary) and combine all configs into a single dictionary
+    if isinstance(configs, str) or isinstance(configs, dict):
+        configs = [configs]
 
     experiments = {}
-    for path in config_files:
-        with open(path) as f:
-            experiments.update(yaml.load(f, Loader=yaml.FullLoader))
+    for config in configs:
+        if isinstance(config, str):
+            with open(config) as f:
+                experiments.update(yaml.load(f, Loader=yaml.FullLoader))
+        else:
+            experiments.update(config)
     
     # Set up experiments
     paths = defaultdict(list)
@@ -137,7 +140,7 @@ def run_experiment(path,
         print(f"Launching {name}, seed: {seed}, num iterations: {max_iterations}")
 
     # Build trainer - really this is an "experiment" rather than a "trainer"
-    trainer_cls = get_trainer_class(config.get("trainer", "default"))
+    trainer_cls = get_experiment_class(config.get("trainer", "default"))
     trainer = trainer_cls(config.get("config", {}), seed=seed, device=device)
 
     # If requested, accumulate statistics and save to a CSV file

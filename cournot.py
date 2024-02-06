@@ -1,30 +1,104 @@
-"""Main script for launching experiments from config files."""
+"""Runs experiments in the Cournot competition game."""
 import argparse
+from copy import deepcopy
 import itertools
+import math
 import torch
 from torch.multiprocessing import Pool
 import traceback
 
-# TODO: Move run and setup scripts to Amanuensis package for reuse - We're not building this anymore
 from hi_c import setup_experiments, run_experiment
+
+BASE_CONFIG = {
+    "iterations": 1000,
+    "trainer": "default",
+    "config": {
+        "steps_per_iter": 1000,
+        "game": "cournot",
+        "game_config": {
+            "initial_price": 50.,
+            "price_slope": 1.,
+            "cost_1": 1.,
+            "cost_2": 1.,
+        }
+    }
+}
+
+HI_C_CONFIG = {
+    "name": "hi_c",
+    "params": {
+        "lr": {
+            "p_series": {
+                "scale": 0.001,
+                "exponent": 0.1
+            }
+        },
+        "p": {
+            "p_series": {
+                "scale": 1.,
+                "exponent": 0.6
+            }
+        },
+        "baseline_lambda": 0.9,
+        "burn_in": 50
+    }
+}
+
+NAIVE_CONFIG = {
+    "name": "naive",
+    "params": {"lr": 0.1}
+}
+
+
+def init_configs():
+
+    # Compute appropriate commitment schedule for Hi-C
+    initial_price = BASE_CONFIG["config"]["game_config"]["initial_price"]
+    price_slope = BASE_CONFIG["config"]["game_config"]["price_slope"]
+    perturbation_exponent = HI_C_CONFIG["params"]["lr"]["p_series"]["exponent"]
+    inner_lr = NAIVE_CONFIG["params"]["lr"]
+
+    B = 2. * initial_price
+    z = math.log(1. - inner_lr * 2. * price_slope)
+    commitment_scale = -2. * (perturbation_exponent + 1.) / z
+    commitment_offset = -2. * math.log(B) / z
+
+    HI_C_CONFIG["params"]["k"] = {
+        "logarithmic": {
+            "scale": commitment_scale,
+            "offset": commitment_offset
+        }
+    }
+
+    # Initialize experiment configs
+    configs = {
+        "hi_c_naive_cournot": deepcopy(BASE_CONFIG),
+        "naive_naive_cournot": deepcopy(BASE_CONFIG)
+    }
+
+    configs["hi_c_naive_cournot"]["config"]["learners"] = [
+        HI_C_CONFIG,
+        NAIVE_CONFIG
+    ]
+
+    configs["naive_naive_cournot"]["config"]["learners"] = [
+        NAIVE_CONFIG,
+        NAIVE_CONFIG
+    ]
+
+    return configs
 
 
 def print_error(error):  # Callback for python multiprocessing
     traceback.print_exception(type(error), error, error.__traceback__, limit=5)
 
 
-def parse_args():  # Parse command line arguments - keep this simple
-    parser = argparse.ArgumentParser(description=__doc__,  # TODO: Need a docstring
+def parse_args():
+    parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("-o", "--output-path", type=str, default="temp_results/cournot",
                         help="directory in which we should save results")
-
-    # TODO: Check how many steps the trainer does per iteration - wastes time reporting every iteration
-    parser.add_argument("--num-iters", type=int, default=1_000,
-                        help="the number of experiment iterations")
-    parser.add_argument("--steps-per-iter", type=int, default=1_000,
-                        help="the number of iterations")
 
     parser.add_argument("--num-seeds", type=int, default=32,
                         help="the number of random seeds to run, overrides values from the config file")
@@ -39,23 +113,17 @@ def parse_args():  # Parse command line arguments - keep this simple
     return parser.parse_args()
 
 
-def init_configs(args):
-    pass
-
-
 if __name__ == '__main__':
-    args = parse_args()  # NOTE: In the `interactive_agents` repo, this is - what, what is it?
+    args = parse_args()
 
     # Select torch device
     device = "cuda" if args.gpu else "cpu"
 
-    # Allow procedurally generated config dictionaries as well
-    # Setup experiments  # NOTE: Does this handle "grid_search" commands?
-    paths = setup_experiments(args.config_files,
+    # Setup experiments
+    paths = setup_experiments(init_configs(),
                               args.output_path,
                               num_seeds=args.num_seeds,
-                              seeds=args.seeds,
-                              arguments=unknown)  # NOTE: In the new framework, experiment directories are initialized for each seed first
+                              seeds=args.seeds)
 
     # Limit Torch CPU parallelism - This must be set BEFORE we initialize the process pool
     torch.set_num_interop_threads(1)
@@ -68,8 +136,7 @@ if __name__ == '__main__':
             experiments.append(pool.apply_async(run_experiment, (path,), {
                 "device": device,
                 "flush_secs": args.flush_secs
-            },
-                                                error_callback=print_error))  # NOTE: The "run_experiment" method just takes the path to the initialized experiment directory
+            }, error_callback=print_error))
 
         # Wait for all trails to complete before returning
         for experiment in experiments:
