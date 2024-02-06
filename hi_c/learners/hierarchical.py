@@ -3,10 +3,8 @@ import torch
 from hi_c.learners.gradient import GradientLearner
 
 
-class HierarchicalGradient(GradientLearner):  # This was in a state of transition when we dropped development
-    """
-    Hierarchical gradient ascent (Fiez et al. 2019)
-    """
+class HierarchicalGradient(GradientLearner):
+    """Hierarchical gradient ascent (Fiez et al., 2019)"""
 
     def __init__(self, game, player_id, **kwargs):
         super(HierarchicalGradient, self).__init__(game, player_id, **kwargs)

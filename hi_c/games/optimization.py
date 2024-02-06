@@ -2,12 +2,14 @@ import torch
 
 from hi_c.util import Box
 
+
 class Quadratic:
 
     def __init__(self,
                  dims=1,
                  players=1,
                  matrix=None,
+                 init_range=1.,
                  device="cpu"):
         
         if matrix is not None:
@@ -16,14 +18,7 @@ class Quadratic:
         else:
             self._matrix = torch.eye(dims, dtype=torch.float, device=device)
         
-        self.strategy_spaces = [Box((dims,)) for _ in range(players)]
-
-    def payoffs(self, *params):
-        payoffs = []
-        for p in params:
-            payoffs.append(-torch.matmul(p, torch.matmul(self._matrix, p)))
-        
-        return payoffs
+        self.strategy_spaces = [Box(-init_range, init_range, (dims,)) for _ in range(players)]
 
     def payoffs(self, *params):
         payoffs = []
@@ -38,8 +33,9 @@ class Gaussian:
     def __init__(self,
                  dims=1,
                  players=1,
-                 scale=1.0,
+                 scale=1.,
                  matrix=None,
+                 init_range=1.,
                  device="cpu"):
         self._scale = scale
 
@@ -49,12 +45,12 @@ class Gaussian:
         else:
             self._matrix = torch.eye(dims, dtype=torch.float, device=device)
         
-        self.strategy_spaces = [Box((dims,)) for _ in range(players)]
+        self.strategy_spaces = [Box(-init_range, init_range, (dims,)) for _ in range(players)]
 
     def payoffs(self, *params):
         payoffs = []
         for p in params:
-            logits = torch.matmul(p, torch.matmul(self._matrix, p))
-            payoffs.append(self._scale * torch.exp(-logits))
+            logit = torch.matmul(p, torch.matmul(self._matrix, p))
+            payoffs.append(self._scale * torch.exp(-logit))
         
         return payoffs

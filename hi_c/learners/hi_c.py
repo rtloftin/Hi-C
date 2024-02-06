@@ -5,7 +5,7 @@ from hi_c.learners.schedule import get_schedule
 
 
 class HiC:
-    """Uncoupled hierarchical gradients with simultaneous perturbations + commitments (our algorithm)"""
+    """Uncoupled hierarchical gradients with simultaneous perturbations + commitments (Loftin et al., AAMAS 2024)"""
 
     def __init__(self,
                  game,  # Generic learners need access to the game to differentiate through it
@@ -15,14 +15,12 @@ class HiC:
                  k=10,  # Commitment schedule
                  baseline_lambda=1.,
                  burn_in=0,
-                 initialization_std=0.5,  # Initialization standard deviation
                  rng=None,
                  device="cpu"):
         self._game = game
         self._player_id = player_id
         self._baseline_lambda = baseline_lambda
         self._burn_in = burn_in
-        self._initialization_std = initialization_std
         self._device = device
 
         # Get parameter space
@@ -39,7 +37,7 @@ class HiC:
         self._strategy = None
         self._sampled_strategy = None
         self._perturbation = None
-        self._last_p = None  # What was this for?
+        self._last_p = None
         self._baseline = None
         self._commitment = None
 
@@ -52,19 +50,13 @@ class HiC:
         self._perturbation = torch.tensor(perturbation,
                                           requires_grad=False,
                                           dtype=torch.float32,
-                                          device=self._device)  # Potentially slow on the GPU
+                                          device=self._device)
 
         self._last_p = self._p.step()
         self._sampled_strategy = self._strategy + self._last_p * self._perturbation
-        # self._sampled_strategy.clamp_(self._space.min, self._space.max)
     
     def reset(self):
-        if self._initialization_std > 0.:
-            initial = self._rng.normal(scale=self._initialization_std, size=self._space.shape)
-        else:
-            initial = np.zeros(self._space.shape)
-        
-        # initial = initial.clip(self._space.min, self._space.max)
+        initial = self._space.sample(self._rng)
         self._strategy = torch.tensor(initial, 
                                       requires_grad=False, 
                                       dtype=torch.float,
@@ -96,8 +88,7 @@ class HiC:
 
                 self._strategy.add_(grad, alpha=self._lr.step())
 
-                # TODO: Probably don't need this
-                # Test whether we are hitting NaN or (inf,-inf) first
+                # Test whether we are hitting NaN or (inf,-inf)
                 if any(torch.isnan(self._strategy)):
                     raise ValueError(f"NaN value encountered (strategy: {self._strategy}, "
                                      + f"grad: {grad}, estimate: {estimate}, "
@@ -108,8 +99,6 @@ class HiC:
                                      + f"grad: {grad}, estimate: {estimate}, "
                                      + f"payoff: {payoffs[self._player_id]}, "
                                      + f"baseline: {self._baseline}, last p: {self._last_p})")
-
-                # self._strategy.clamp_(self._space.min, self._space.max)
 
             self._sample()
             self._counter = 0

@@ -1,18 +1,19 @@
 import torch
 
-from hi_c.util import get_schedule
+from hi_c.learners.schedule import get_schedule
 from hi_c.learners.gradient import GradientLearner
 
+
 class LOLA(GradientLearner):
-    """First-order LOLA (implementation for a single player)"""
+    """First-order LOLA (Foerster et al., 2017)"""
 
     def __init__(self, 
                  game, 
-                 id, 
+                 player_id,
                  other_lr=1, 
                  correction=True, 
                  **kwargs):
-        super(LOLA, self).__init__(game, id, **kwargs)
+        super(LOLA, self).__init__(game, player_id, **kwargs)
         self._other_lr = get_schedule(other_lr)
         
         if correction:
@@ -22,13 +23,13 @@ class LOLA(GradientLearner):
 
     def gradient(self, strategies):
         payoffs = self.game.payoffs(*strategies)
-        grads = torch.autograd.grad([payoffs[self.id]], strategies, create_graph=True)
+        grads = torch.autograd.grad([payoffs[self.player_id]], strategies, create_graph=True)
 
-        gradient = grads[self.id].detach()
+        gradient = grads[self.player_id].detach()
         other_lr = self._other_lr.step()
-        for id, grad in enumerate(grads):
-            if id != self.id:
-                term = self._grad_fn(self.strategy,strategies[id], payoffs[id], grad)
+        for pid, grad in enumerate(grads):
+            if pid != self.player_id:
+                term = self._grad_fn(self.strategy, strategies[pid], payoffs[pid], grad)
                 gradient.add_(term, alpha=other_lr)
         
         return gradient
@@ -47,8 +48,8 @@ def corrected_lola(strategy,
                    other_strategy, 
                    other_payoff,
                    other_grad):
-        term, = torch.autograd.grad([other_payoff], [other_strategy], create_graph=True)
-        term = torch.matmul(other_grad, term)
+    term, = torch.autograd.grad([other_payoff], [other_strategy], create_graph=True)
+    term = torch.matmul(other_grad, term)
 
-        grad, = torch.autograd.grad([term], [strategy])
-        return grad
+    grad, = torch.autograd.grad([term], [strategy])
+    return grad

@@ -12,13 +12,11 @@ class GradientLearner(metaclass=ABCMeta):
     def __init__(self, 
                  game,
                  player_id,
-                 lr=0.005, 
-                 initialization_std=0.5,
+                 lr=0.005,
                  rng=None,
                  device="cpu"):
         self.game = game
         self.player_id = player_id
-        self.initialization_std = initialization_std
         self.device = device
         self.strategy = None
  
@@ -36,14 +34,7 @@ class GradientLearner(metaclass=ABCMeta):
         raise NotImplementedError()
 
     def reset(self):
-        if self.initialization_std > 0.:  # NOTE: Initialization handled by numpy, not torch
-            # Need a different initializer for the cournot game, clipping to zero - how did we fix this? - seems we didn't, starting at zero does work
-            # May want to implement sampling from the strategy space, something Gym already does
-            initial = self.rng.normal(scale=self.initialization_std, size=self.space.shape)
-        else:
-            initial = np.zeros(self.space.shape)
-        
-        # initial = initial.clip(self.space.min, self.space.max)  # NOTE: We turned this off, wouldn't that create issues for the Cournot game?
+        initial = self.space.sample(self.rng)
         self.strategy = torch.tensor(initial, 
                                      requires_grad=True, 
                                      dtype=torch.float,
@@ -62,7 +53,6 @@ class GradientLearner(metaclass=ABCMeta):
 
         with torch.no_grad():
             self.strategy.add_(gradient, alpha=self.lr.step())
-            # self.strategy.clamp_(self.space.min, self.space.max)
 
         return self.strategy
 

@@ -1,5 +1,4 @@
 """Utility classes for defining differentiable games and running experiments"""
-import numpy as np
 import time
 
 
@@ -32,16 +31,15 @@ class Stopwatch:
         return self._elapsed
 
 
-class Box:  # Do we ever use this anywhere?
+class Box:
 
-    def __init__(self, shape, min=-np.inf, max=np.inf):
+    def __init__(self, min, max, shape):
         self.min = min
         self.max = max
         self.shape = shape
 
     def sample(self, rng):
-        pass
-
+        return rng.uniform(self.min, self.max, self.shape)
 
 
 class ReversedGame:
