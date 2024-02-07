@@ -174,35 +174,19 @@ def run_experiment(path,
     trainer.save_artifacts(artifact_path)
 
 
-def load_experiments(args):
+def load_experiment(path):
+    if not os.path.isdir(path):
+        raise Exception(f"Experiment directory '{path}' does not exist")
 
-    # NOTE: Shouldn't need this anymore
-    if len(args) % 2 != 0:  # NOTE: Need an even number of items (label experiment pairs)
-        raise ValueError("Must provide a label for each experiment")
+    runs = []
+    for obj in os.listdir(path):
+        seed_path = os.path.join(path, obj)
 
-    # NOTE: The same experiment may have multiple labels now, as we are plotting different data series from the same experiment
-    experiments = dict()  # NOTE: Results for each labeled experiment
+        if os.path.isdir(seed_path):
+            data = pandas.read_csv(os.path.join(seed_path, "results.csv"))
 
-    for index in range(0, len(args), 2):  # NOTE: Steps through each label-experiment pair
-        directory = args[index + 1]  # NOTE: Second item is a string path to a directory of experimental results
-        runs = []  # NOTE: These are individual random seeds
+            # Filter out empy data series
+            if data.shape[0] > 0:
+                runs.append(data)
 
-        if not os.path.isdir(directory):
-            raise Exception(f"Experiment directory {directory} does not exist")
-
-        for obj in os.listdir(directory):  # NOTE: Grabs all sub-directories, regardless of their name
-            path = os.path.join(directory, obj)
-
-            if os.path.isdir(path):
-                # NOTE: Loads the entire table with all columns - could be slow
-                data = pandas.read_csv(
-                    os.path.join(path, "results.csv"))  # NOTE: Change this to 'results.csv' to work with our data
-
-                # Filter out empy data series
-                if data.shape[0] > 0:
-                    runs.append(data)
-
-        experiments[
-            args[index]] = runs  # NOTE: Stores each table, for each seed, under the given label of the experiment
-
-    return experiments
+    return runs

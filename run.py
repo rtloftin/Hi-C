@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Main script for launching experiments from config files."""
+"""Launches experiments from .yaml config files."""
 import argparse
 import itertools
 import torch
@@ -14,7 +14,7 @@ def print_error(error):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description=__doc__,  # TODO: Need a docstring
+    parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
 
     parser.add_argument("config_files", type=str, nargs="*",
@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument("-n", "--num-cpus", type=int, default=1,
                         help="the number of parallel experiments to launch")
     parser.add_argument("-g", "--gpu", action="store_true",
-                        help="enable GPU acceleration if available")  # NOTE: We're never going to use the GPU
+                        help="enable GPU acceleration if available")
 
     parser.add_argument("--flush-secs", type=int, default=60,
                         help="number of seconds after which we should flush the training logs (default 60)")

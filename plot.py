@@ -75,7 +75,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Load experiment data
-    experiments = load_experiments(args.experiments)  # NOTE: What does the resulting data look like?
+    experiments = load_experiments(args.experiments)  # NOTE: Returns a dictionary of Pandas DataFrames
 
     # Plot results
     color_map = colors.get_cmap("tab20").colors  # NOTE: Just a list of colors, but organized as pairs shades of the same color

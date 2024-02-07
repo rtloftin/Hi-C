@@ -88,7 +88,7 @@ class SimultaneousLearning(Experiment):
         for pid, payoff in enumerate(payoffs):
             payoff = payoff.item()  # Payoffs are scalar torch tensors
             total_payoff += payoff
-            stats[f"global/payoff_{id}"] = payoff
+            stats[f"global/payoff_{pid}"] = payoff
         
         stats["global/total_payoff"] = total_payoff
         return stats
