@@ -1,0 +1,18 @@
+naive_naive_cournot:
+  config:
+    game: cournot
+    game_config:
+      cost_1: 1.0
+      cost_2: 1.0
+      initial_price: 50.0
+      price_slope: 1.0
+    learners:
+    - &id001
+      name: naive
+      params:
+        lr: 0.1
+    - *id001
+    steps_per_iter: 1000
+  iterations: 1000
+  seed: 25
+  trainer: default

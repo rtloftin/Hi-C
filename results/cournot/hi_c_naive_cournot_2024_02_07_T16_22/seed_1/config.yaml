@@ -1,0 +1,32 @@
+hi_c_naive_cournot:
+  config:
+    game: cournot
+    game_config:
+      cost_1: 1.0
+      cost_2: 1.0
+      initial_price: 50.0
+      price_slope: 1.0
+    learners:
+    - name: hi_c
+      params:
+        baseline_lambda: 0.9
+        burn_in: 50
+        k:
+          logarithmic:
+            offset: 41.27540463406469
+            scale: 9.859124258994012
+        lr:
+          p_series:
+            exponent: 0.1
+            scale: 0.001
+        p:
+          p_series:
+            exponent: 0.6
+            scale: 1.0
+    - name: naive
+      params:
+        lr: 0.1
+    steps_per_iter: 1000
+  iterations: 1000
+  seed: 1
+  trainer: default

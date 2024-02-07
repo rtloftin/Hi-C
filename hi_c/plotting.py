@@ -5,6 +5,28 @@ import matplotlib.cm as colors
 import numpy as np
 
 
+def set_range(min_val, max_val):
+    """Sets ranges for an axis that yield for easy-to-read plots."""
+
+    if min_val > max_val:  # No data, set an arbitrary range
+        min_val = 0.0
+        max_val = 100.0
+    elif 0.0 == min_val and 0.0 == max_val:  # All data is zero, set and arbitrary range
+        min_val = -100.0
+        max_val = 100.0
+    elif min_val >= 0.0:  # All values positive, set range from 0 to 120% of max
+        min_val = 0.0
+        max_val *= 1.2
+    elif max_val <= 0.0:  # All values negative, set range from 120% of min to 0
+        min_val *= 1.2
+        max_val = 0.0
+    else:  # Both positive and negative values, expand range by 20%
+        min_val *= 1.2
+        max_val *= 1.2
+
+    return min_val, max_val
+
+
 def line_plot(data,
               x_axis,
               title,
@@ -36,7 +58,7 @@ def line_plot(data,
             std = np.std(series, axis=0, ddof=1)
             upper = means + std
             lower = means - std
-        else:  # NOTE: Invalid mode string prints no error bars
+        else:
             upper = means
             lower = means
 
@@ -48,26 +70,42 @@ def line_plot(data,
         legend_entries.append(patches.Patch(color=color_map[2 * index], label=label))
 
     # Set ranges for the y-axis
-    if y_min > y_max:  # No data, set an arbitrary range
-        y_min = 0.0
-        y_max = 100.0
-    elif 0.0 == y_min and 0.0 == y_max:  # All data is zero, set and arbitrary range
-        y_min = -100.0
-        y_max = 100.0
-    elif y_min >= 0.0:  # All values positive, set range from 0 to 120% of max
-        y_min = 0.0
-        y_max *= 1.2
-    elif y_max <= 0.0:  # All values negative, set range from 120% of min to 0
-        y_min *= 1.2
-        y_max = 0.0
-    else:  # Both positive and negative values, expand range by 20%
-        y_min *= 1.2
-        y_max *= 1.2
+    y_min, y_max = set_range(y_min, y_max)
 
     # Create plot
     plot.legend(handles=legend_entries)
     plot.title(title)
     plot.xlabel(x_label)
     plot.ylabel(y_label)
-    plot.ylim(bottom=y_min, top=y_max)  # NOTE: Sets the range of the y-axis
+    plot.ylim(bottom=y_min, top=y_max)
+    plot.savefig(image_path, bbox_inches="tight")
+
+
+def curve_plot(x_values,
+               y_values,
+               title,
+               x_label,
+               y_label,
+               image_path):
+    if not isinstance(x_values, list):
+        x_values = [x_values]
+    if not isinstance(y_values, list):
+        y_values = [y_values]
+
+    x_values = np.asarray(x_values, dtype=np.float32).mean(axis=0)
+    y_values = np.asarray(y_values, dtype=np.float32).mean(axis=0)
+
+    x_min, x_max = set_range(x_values.min(), x_values.max())
+    y_min, y_max = set_range(y_values.min(), y_values.max())
+
+    color_map = colors.get_cmap("tab20").colors
+
+    plot.clf()
+    plot.plot(x_values, y_values, color=color_map[0], alpha=1.0)
+
+    plot.title(title)
+    plot.xlabel(x_label)
+    plot.ylabel(y_label)
+    plot.ylim(bottom=x_min, top=x_max)
+    plot.ylim(bottom=y_min, top=y_max)
     plot.savefig(image_path, bbox_inches="tight")
