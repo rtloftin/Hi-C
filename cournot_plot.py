@@ -38,7 +38,7 @@ if __name__ == '__main__':
     line_plot(series,
               x_axis,
               title=args.title,
-              x_label="time steps",
+              x_label="number of stages",
               y_label="payoff",
               errors="range",
               image_path=payoff_path)
